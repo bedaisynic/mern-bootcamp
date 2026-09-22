@@ -90,6 +90,10 @@ nav a:hover {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 1.25rem;
+  width: 100%;
+  max-width: 900px;
+  box-sizing: border-box;
+  margin: 30px 0;
 }
 
 /* Recipe card */
@@ -102,6 +106,7 @@ nav a:hover {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
+  height:200px;
 }
 
 .recipe-card h3 {
@@ -118,7 +123,9 @@ nav a:hover {
 .recipe-card .card-actions {
   display: flex;
   align-items: center;
+  flex-direction: column;
   gap: 1rem;
+
 }
 
 .recipe-card button {
@@ -157,6 +164,10 @@ nav a:hover {
   padding: 1.5rem;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 1.25rem;
+  width: 100%;
+  max-width: 900px;
+  box-sizing: border-box;
+  margin: 0 auto;
 }
 
 /* Recipe details */
@@ -166,8 +177,18 @@ nav a:hover {
   border-radius: 8px;
   padding: 1.5rem;
   max-width: 600px;
+  margin: 0 auto;
 }
 
 .recipe-details h2 {
   margin-top: 0;
+}
+
+.back-button {
+  display: inline-block;
+  background: var(--hr-green);
+  color: white;
+  border-radius: 6px;
+  padding: 0.5rem 0.9rem;
+  text-decoration: none;
 }
