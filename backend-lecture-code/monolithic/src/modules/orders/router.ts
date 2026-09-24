@@ -11,6 +11,18 @@ export const ordersRouter = Router();
 // GET /orders
 ordersRouter.get("/", orderController.getAll);
 
+// #demo-n-plus-1 — same result, 1 + N queries vs. 1 join. must be
+// registered before /:id, otherwise "with-products" gets matched as an id
+ordersRouter.get("/with-products/n-plus-1", orderController.getWithProductsNPlusOne);
+ordersRouter.get("/with-products/join", orderController.getWithProductsJoin);
+
+// demo-indexing — same query, unindexed column vs indexed column
+ordersRouter.get("/by-customer/:customerId", orderController.getByCustomer);
+ordersRouter.get(
+  "/by-customer-indexed/:customerId",
+  orderController.getByCustomerIndexed,
+);
+
 // GET /orders/:id
 ordersRouter.get("/:id", async (req, res) => {
   // validation

@@ -5,6 +5,7 @@ import {
   integer,
   timestamp,
   jsonb,
+  index,
 } from "drizzle-orm/pg-core";
 
 // note: schema is defined here with drizzle so we get types + a seed script,
@@ -36,8 +37,18 @@ export const orders = pgTable("orders", {
   quantity: integer("quantity").notNull(),
   status: varchar("status", { length: 32 }).notNull().default("pending"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
 
+  // the same customer id stored twice — identical values, the ONLY
+  // difference is that the second column has an index. nullable so rows
+  // inserted by POST /orders (which doesn't set a customer) still work.
+  customerId: integer("customer_id"), // no index → sequential scan
+  customerIdIndexed: integer("customer_id_indexed"), // indexed below
+}, (t) => [
+  // same as: CREATE INDEX orders_customer_id_indexed_idx ON orders (customer_id_indexed);
+  index("orders_customer_id_indexed_idx").on(t.customerIdIndexed),
+]);
+
+// #demo-atomicity
 // audit trail for POST /inventory/:id/adjust — exists specifically to give
 // that transaction a second real write, so ATOMICITY ("all or nothing") has
 // something concrete to demonstrate. see inventory/service.ts:adjust().
@@ -49,6 +60,17 @@ export const inventoryAdjustments = pgTable("inventory_adjustments", {
   delta: integer("delta").notNull(),
   previousQuantity: integer("previous_quantity").notNull(),
   newQuantity: integer("new_quantity").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// demo-pagination (see DEMOS.md)
+// an append-only activity feed, seeded with 10 million rows — big enough
+// that deep OFFSET pages are visibly slow. paginated newest-first by id,
+// which the primary-key index already covers.
+export const activityLogs = pgTable("activity_logs", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  action: varchar("action", { length: 32 }).notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

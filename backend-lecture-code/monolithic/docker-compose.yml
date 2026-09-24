@@ -3,6 +3,17 @@ services:
     image: postgres:16-alpine
     container_name: backend-lecture-postgres
     restart: unless-stopped
+    # slow query tracking:
+    #   pg_stat_statements            -> per-query stats, queryable as a view (SELECT * FROM pg_stat_statements)
+    #   log_min_duration_statement    -> log any statement slower than 100ms (docker logs backend-lecture-postgres)
+    command:
+      - postgres
+      - -c
+      - shared_preload_libraries=pg_stat_statements
+      - -c
+      - pg_stat_statements.track=all
+      - -c
+      - log_min_duration_statement=100ms
     environment:
       POSTGRES_USER: lecture
       POSTGRES_PASSWORD: lecture

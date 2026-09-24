@@ -20,7 +20,9 @@ export function isValidTransition(from: OrderStatus, to: OrderStatus): boolean {
 }
 
 // this layer is very simple, but we create it regardless for consistency
-export const getAll = async ({ params }: any) => {
+export const getAll = async (params : any) => {
+  console.log(params);
+  
   const orders = await orderRepository.getAll(params);
 
   // log, save the request into audit history, cache policy, etc

@@ -82,6 +82,8 @@ import D13Notes from "./week3/day13-layered-architecture/Notes";
 import D13Practice from "./week3/day13-layered-architecture/Practice";
 import D13Concepts from "./week3/day13-layered-architecture/Concepts";
 import D13Lab from "./week3/day13-layered-architecture/Lab";
+import D14Lecture from "./week3/day14-database-performance/Lecture";
+import D14Notes from "./week3/day14-database-performance/Notes";
 
 import FullSqlFoundation from "./week3/additional-backend-topics/full-sql/Foundation";
 import FullSqlQueryOptimization from "./week3/additional-backend-topics/full-sql/QueryOptimization";
@@ -309,6 +311,15 @@ function App() {
       <Route
         path="/week3/day13-layered-architecture/lab"
         element={<D13Lab />}
+      />
+
+      <Route
+        path="/week3/day14-database-performance/lecture"
+        element={<D14Lecture />}
+      />
+      <Route
+        path="/week3/day14-database-performance/notes"
+        element={<D14Notes />}
       />
 
       <Route

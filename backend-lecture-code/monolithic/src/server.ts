@@ -1,6 +1,7 @@
 import "dotenv/config";
 
 import express from "express";
+import cors from "cors";
 import { sql } from "drizzle-orm";
 
 import { db } from "./db/pool";
@@ -9,12 +10,18 @@ import { errorHandler } from "./lib/errors";
 import { productsRouter } from "./modules/products/router";
 import { inventoryRouter } from "./modules/inventory/router";
 import { ordersRouter } from "./modules/orders/router";
+import { activityRouter } from "./modules/activity/router";
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3100;
 
+// lets browser pages on other origins (e.g. the curriculum site's day 14
+// lecture page on localhost:5173) read our responses. wide open is fine for
+// a local lecture playground — a real API would list its allowed origins.
+app.use(cors());
 app.use(express.json());
 
+// #demo-blocking (see DEMOS.md)
 // blocking
 app.get("/blocking", async (_req, res) => {
   // intentionally block for 5 seconds
@@ -31,6 +38,7 @@ app.get("/blocking", async (_req, res) => {
 app.use("/products", productsRouter);
 app.use("/inventory", inventoryRouter);
 app.use("/orders", ordersRouter);
+app.use("/activity", activityRouter); // #demo-pagination
 
 // GET http://localhost:3100/health
 app.get("/health", async (_req, res) => {
@@ -42,6 +50,7 @@ app.get("/health", async (_req, res) => {
   }
 });
 
+// #demo-error-handling
 // mounted last, after every route — turns any thrown AppError (or a Zod
 // validation failure) into one consistent JSON response. see lib/errors.ts.
 app.use(errorHandler);

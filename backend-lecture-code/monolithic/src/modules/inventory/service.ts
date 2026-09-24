@@ -34,6 +34,7 @@ export const inventoryService = {
     return row;
   },
 
+  // #demo-idempotency (see DEMOS.md)
   // IDEMPOTENCY KEY: a client-supplied header (see Day 11) that makes a
   // POST safe to retry. On a first request with a given key, this creates
   // the row and remembers the response under that key. On a retry with the
@@ -95,6 +96,7 @@ export const inventoryService = {
   // Idempotency-Key to get that property the way POST /inventory does.
   async setQuantity(id: number, quantity: number): Promise<InventoryRow> {
     const row = await db.transaction(async (tx) => {
+      // #demo-isolation (see DEMOS.md)
       // ISOLATION: FOR UPDATE locks this row for the rest of the
       // transaction. A second setQuantity()/adjust() on the same id has to
       // wait for this one to commit or roll back — it can't read the same
@@ -113,6 +115,7 @@ export const inventoryService = {
   // reading the same starting quantity and pushing it negative.
   async adjust(id: number, delta: number): Promise<InventoryRow> {
     const row = await db.transaction(async (tx) => {
+      // #demo-isolation
       // ISOLATION: same FOR UPDATE lock as setQuantity() above — this is
       // what stops two concurrent adjustments from both reading "222" and
       // both computing their result off that same stale number.
@@ -121,6 +124,7 @@ export const inventoryService = {
 
       const nextQuantity = current.quantity + delta;
 
+      // #demo-atomicity (see DEMOS.md)
       // ATOMICITY: this audit-log insert and the quantity update below are
       // one unit — either both happen or neither does. If the guard right
       // after this throws, this insert — even though it already ran,

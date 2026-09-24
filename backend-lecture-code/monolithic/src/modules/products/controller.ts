@@ -8,6 +8,7 @@ import {
   updateProductBodySchema,
 } from "./validation";
 
+// #demo-error-handling — controllers forward every error with next(err)
 // HTTP concerns only: parse + validate the request, call the service,
 // shape the response. no business logic, no db/redis calls here. any
 // thrown error (Zod, or an AppError from the service) is forwarded to

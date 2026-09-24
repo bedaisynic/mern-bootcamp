@@ -135,6 +135,11 @@ export const WEEKS: Week[] = [
         pages: ALL,
       },
       {
+        slug: "day14-database-performance",
+        title: "Database Performance",
+        pages: ["lecture", "notes"],
+      },
+      {
         slug: "additional-backend-topics",
         title: "Additional Backend Topics",
         pages: [], // the group itself has no pages — its topics do

@@ -1,7 +1,7 @@
 import { pool } from "../../db/pool";
 import { OrderStatus } from "./service";
 
-export const getAll = async ({ params }: any) => {
+export const getAll = async (params : any) => {
   // db query
   const { limit, offset } = params;
   const { rows } = await pool.query(

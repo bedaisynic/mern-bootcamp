@@ -1,3 +1,4 @@
+// #demo-error-handling (see DEMOS.md)
 // shared error types + centralized error-handling middleware.
 //
 // every kind of failure gets its own small class that already knows its

@@ -420,6 +420,348 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "Demos",
+      "description": "Lecture demos — see DEMOS.md. Watch the server terminal: timings and drizzle's SQL log print there.",
+      "item": [
+        {
+          "name": "N+1 query (#demo-n-plus-1)",
+          "description": "#demo-n-plus-1 — see DEMOS.md. Same result from both: each order with its product's name. Send both and compare the time and `queryCount` in the response. The server terminal logs every query.",
+          "item": [
+            {
+              "name": "Orders with products — N+1 (1 + N queries)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/orders/with-products/n-plus-1?limit=500&offset=0",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "orders",
+                    "with-products",
+                    "n-plus-1"
+                  ],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "500"
+                    },
+                    {
+                      "key": "offset",
+                      "value": "0"
+                    }
+                  ]
+                },
+                "description": "#demo-n-plus-1 — 1 query for the orders, then 1 query per order for its product. Response: { queryCount: 501, rows }. Raise `limit` (e.g. 2000) to widen the gap."
+              },
+              "response": []
+            },
+            {
+              "name": "Orders with products — JOIN (1 query)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/orders/with-products/join?limit=500&offset=0",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "orders",
+                    "with-products",
+                    "join"
+                  ],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "500"
+                    },
+                    {
+                      "key": "offset",
+                      "value": "0"
+                    }
+                  ]
+                },
+                "description": "#demo-n-plus-1 — the same rows from one JOIN. Response: { queryCount: 1, rows }."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Indexing (#demo-indexing)",
+          "description": "#demo-indexing — see DEMOS.md. Same query, same data; only one column is indexed. Send both and compare the WITHOUT/WITH index timings in the terminal.",
+          "item": [
+            {
+              "name": "Orders by customer — WITHOUT index",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/orders/by-customer/42",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "orders",
+                    "by-customer",
+                    "42"
+                  ]
+                },
+                "description": "#demo-indexing — filters on orders.customer_id (no index) → sequential scan over all 300k rows."
+              },
+              "response": []
+            },
+            {
+              "name": "Orders by customer — WITH index",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/orders/by-customer-indexed/42",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "orders",
+                    "by-customer-indexed",
+                    "42"
+                  ]
+                },
+                "description": "#demo-indexing — filters on orders.customer_id_indexed (orders_customer_id_indexed_idx) → index scan."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Pagination (#demo-pagination)",
+          "description": "#demo-pagination — see DEMOS.md. activity_logs has 10M rows, newest first. Compare the deep offset pages against the cursor requests: offset gets slower the deeper you go, cursor stays the same.",
+          "item": [
+            {
+              "name": "Offset — page 1",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/activity/offset?page=1&limit=20",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "activity",
+                    "offset"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    }
+                  ]
+                },
+                "description": "#demo-pagination — OFFSET 0. Fast."
+              },
+              "response": []
+            },
+            {
+              "name": "Offset — page 250,000 (middle)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/activity/offset?page=250000&limit=20",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "activity",
+                    "offset"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "250000"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    }
+                  ]
+                },
+                "description": "#demo-pagination — OFFSET 4,999,980: postgres reads and discards ~5M rows."
+              },
+              "response": []
+            },
+            {
+              "name": "Offset — page 500,000 (last)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/activity/offset?page=500000&limit=20",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "activity",
+                    "offset"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "500000"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    }
+                  ]
+                },
+                "description": "#demo-pagination — OFFSET 9,999,980: reads and discards ~10M rows. Slowest."
+              },
+              "response": []
+            },
+            {
+              "name": "Offset — total count",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/activity/count",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "activity",
+                    "count"
+                  ]
+                },
+                "description": "#demo-pagination — COUNT(*) that offset pagination needs for 'page X of Y'. A slow full scan on its own."
+              },
+              "response": []
+            },
+            {
+              "name": "Cursor — first page",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/activity/cursor?limit=20",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "activity",
+                    "cursor"
+                  ],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    }
+                  ]
+                },
+                "description": "#demo-pagination — newest 20 rows. Response has nextCursor / prevCursor to pass back."
+              },
+              "response": []
+            },
+            {
+              "name": "Cursor — next page (after id)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/activity/cursor?after=9999981&limit=20",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "activity",
+                    "cursor"
+                  ],
+                  "query": [
+                    {
+                      "key": "after",
+                      "value": "9999981"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    }
+                  ]
+                },
+                "description": "#demo-pagination — WHERE id < 9999981. Use the previous response's nextCursor as `after`."
+              },
+              "response": []
+            },
+            {
+              "name": "Cursor — previous page (before id)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/activity/cursor?before=9999980&limit=20",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "activity",
+                    "cursor"
+                  ],
+                  "query": [
+                    {
+                      "key": "before",
+                      "value": "9999980"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    }
+                  ]
+                },
+                "description": "#demo-pagination — WHERE id > 9999980, reversed back to newest-first. Use prevCursor as `before`."
+              },
+              "response": []
+            },
+            {
+              "name": "Cursor — last page",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/activity/cursor?last=true&limit=20",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "activity",
+                    "cursor"
+                  ],
+                  "query": [
+                    {
+                      "key": "last",
+                      "value": "true"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    }
+                  ]
+                },
+                "description": "#demo-pagination — the oldest 20 rows. As fast as the first page, unlike offset page 500,000."
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
     }
   ],
   "variable": [

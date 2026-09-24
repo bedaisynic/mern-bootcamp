@@ -7,6 +7,7 @@ import type {
   UpdateProductBody,
 } from "./validation";
 
+// #demo-cache-aside (see DEMOS.md)
 // cache-aside: check redis first, fall back to the repository on a miss,
 // then populate redis for next time. two patterns are demonstrated here —
 // versioned keys for the list endpoint (avoids ever needing KEYS/SCAN to
@@ -43,8 +44,10 @@ function isUniqueViolation(err: unknown): boolean {
 }
 
 export const productsService = {
+  // #demo-cache-aside — read path, versioned list key
   async list(query: ListProductsQuery): Promise<Product[]> {
 
+    // #demo-error-handling — uncomment to see an unknown error become a clean 500
     // throw new Error("just felt like throwing an error today")
 
     const version = await getCacheVersion();
@@ -90,6 +93,7 @@ export const productsService = {
     }
   },
 
+  // #demo-cache-aside — write path: bump list version + DEL the item key
   async update(id: number, data: UpdateProductBody): Promise<Product> {
     const product = await productsRepository.update(id, data);
     if (!product) throw new NotFoundError(`product ${id} not found`);
