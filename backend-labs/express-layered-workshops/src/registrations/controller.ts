@@ -8,6 +8,12 @@ import type { Request, Response } from "express";
 
 import { sendErrorResponse } from "../lib/errors";
 import { registrationsService } from "./service";
+import {
+  listRegistrationsQuerySchema,
+  registrationIdParamSchema,
+  createRegistrationBodySchema,
+  cancelRegistrationBodySchema
+} from "./validation";
 // TODO: import the schemas you wrote in validation.ts
 
 export const registrationsController = {
@@ -17,7 +23,10 @@ export const registrationsController = {
       //   - parse req.query with listRegistrationsQuerySchema
       //   - call registrationsService.list({ workshopId })
       //   - res.json(...) the result
-      throw new Error("not implemented");
+
+      const query = listRegistrationsQuerySchema.parse(req.query);
+      const row = await registrationsService.list(query);
+      res.json(row);
     } catch (err) {
       sendErrorResponse(err, res);
     }
@@ -29,7 +38,10 @@ export const registrationsController = {
       //   - parse req.params with registrationIdParamSchema
       //   - call registrationsService.getById(id)
       //   - res.json(...) the result
-      throw new Error("not implemented");
+      const { id } = registrationIdParamSchema.parse(req.params);
+      const row = await registrationsService.getById(id);
+
+      res.json(row);
     } catch (err) {
       sendErrorResponse(err, res);
     }
@@ -41,7 +53,10 @@ export const registrationsController = {
       //   - parse req.body with createRegistrationBodySchema
       //   - call registrationsService.create(body)
       //   - res.status(201).json(...) the result
-      throw new Error("not implemented");
+      const body = createRegistrationBodySchema.parse(req.body);
+      const row = await registrationsService.create(body);
+
+      res.status(201).json(row);
     } catch (err) {
       sendErrorResponse(err, res);
     }
@@ -56,7 +71,15 @@ export const registrationsController = {
       //     service even runs)
       //   - call registrationsService.cancel(id)
       //   - res.json(...) the result
-      throw new Error("not implemented");
+      console.log("!!!!!!req.params", req.params);
+      const { id } = registrationIdParamSchema.parse(req.params);
+
+      cancelRegistrationBodySchema.parse(req.body);
+
+      const result = await registrationsService.cancel(id);
+
+      res.json(result);
+
     } catch (err) {
       sendErrorResponse(err, res);
     }
