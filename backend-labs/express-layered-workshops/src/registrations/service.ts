@@ -16,23 +16,22 @@
 import { ConflictError, NotFoundError } from "../lib/errors";
 import { attendeesRepository } from "../attendees/repository";
 import { workshopsRepository } from "../workshops/repository";
-import {
-  registrationsRepository,
-  type Registration,
-} from "./repository";
+import { registrationsRepository, type Registration } from "./repository";
 import type { CreateRegistrationBody } from "./validation";
 
 export const registrationsService = {
   async list(filters: { workshopId?: number }): Promise<Registration[]> {
     // TODO: just pass this through to the repository — no rules needed
     // for a plain list.
-    throw new Error("not implemented");
+    return registrationsRepository.list(filters);
   },
 
   async getById(id: number): Promise<Registration> {
     // TODO: find it; if it doesn't exist, throw
     // `new NotFoundError(...)`.
-    throw new Error("not implemented");
+    const row = await registrationsRepository.findById(id);
+    if (!row) throw new NotFoundError(`registration row ${id} not found`);
+    return row;
   },
 
   async create(data: CreateRegistrationBody): Promise<Registration> {
@@ -50,7 +49,35 @@ export const registrationsService = {
     //      against workshop.capacity. At or over? throw ConflictError —
     //      workshop is full.
     //   5. All good — registrationsRepository.create(data) and return it.
-    throw new Error("not implemented");
+    const workshop = await workshopsRepository.findById(data.workshopId);
+    if (!workshop) {
+      throw new NotFoundError(`workshop ${data.workshopId} not found`);
+    }
+
+    const attendee = await attendeesRepository.findById(data.attendeeId);
+    if (!attendee) {
+      throw new NotFoundError(`attendee ${data.attendeeId} not found`);
+    }
+
+    const existing =
+      await registrationsRepository.findConfirmedByWorkshopAndAttendee(
+        data.workshopId,
+        data.attendeeId,
+      );
+    if (existing) {
+      throw new ConflictError(
+        `${data.attendeeId} is already signed with the workshop ${data.workshopId}`,
+      );
+    }
+
+    const capacityCount =
+      await registrationsRepository.countConfirmedForWorkshop(data.workshopId);
+
+    if (capacityCount >= workshop.capacity) {
+      throw new ConflictError("The workshop is full");
+    }
+
+    return registrationsRepository.create(data);
   },
 
   async cancel(id: number): Promise<Registration> {
@@ -59,6 +86,18 @@ export const registrationsService = {
     //   2. Already "cancelled"? throw ConflictError — can't cancel twice.
     //   3. Otherwise, registrationsRepository.updateStatus(id, "cancelled")
     //      and return it.
-    throw new Error("not implemented");
+    // throw new Error("not implemented");
+
+    const row = await registrationsRepository.findById(id);
+    if (!row) throw new NotFoundError(`registration row ${id} not found`);
+    console.log("!!!!!row:", row);
+
+    if (row.status === 'cancelled') {
+      throw new ConflictError(
+        `The register has been cancelled with ${id}`,
+      );
+    }
+
+    return registrationsRepository.updateStatus(id, "cancelled");
   },
 };
