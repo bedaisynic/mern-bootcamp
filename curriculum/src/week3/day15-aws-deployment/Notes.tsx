@@ -104,6 +104,13 @@ export default function Notes() {
           workers, anything that holds open connections (WebSockets), and anything needing full
           control of the machine.
         </p>
+        <p>
+          An instance's disk is actually a separate service called <strong>EBS (Elastic Block
+          Store)</strong> — the OS and any extra storage live on an EBS volume attached to the
+          instance. Unlike the instance's own temporary local storage, an EBS volume survives the
+          instance being stopped and restarted, and it can be snapshotted for backup — the same
+          idea as the RDS and S3 backups elsewhere on this page.
+        </p>
         <div className="concept">
           <p className="concept-label">Key ideas</p>
           <ul>
@@ -139,12 +146,45 @@ export default function Notes() {
           manage, it scales automatically, and you pay per request and per millisecond of run
           time. When nothing is happening, it costs nothing.
         </p>
-        <p>
-          <strong>Common triggers:</strong> an HTTP request through API Gateway, a file landing in
-          S3, a message on a queue (SQS), a schedule (cron). <strong>Commonly used for:</strong>{" "}
-          resizing an image after upload, webhook handlers, nightly jobs, glue between services,
-          low- or spiky-traffic APIs.
+        <p className="compare-label">
+          <strong>Commonly used for</strong>
         </p>
+        <ul>
+          <li>
+            <strong>Scheduled jobs</strong> — Lambda can run automatically on a timer, like a cron
+            job. A nightly function that emails a sales report or cleans up old records, without a
+            server sitting around waiting for that one moment each day.
+          </li>
+          <li>
+            <strong>Webhook handlers</strong> — when an outside service (like a payment provider)
+            needs to notify your app that something happened, Lambda can be the endpoint that
+            receives that one-off notification and reacts to it, instead of running a whole server
+            just to catch occasional pings.
+          </li>
+          <li>
+            <strong>Event-driven processing</strong> — Lambda runs automatically whenever something
+            happens elsewhere in AWS, like a new file landing in an S3 bucket. The moment a user
+            uploads a photo, a Lambda function can resize it — nobody has to trigger anything by
+            hand.
+          </li>
+          <li>
+            <strong>Serverless API backends</strong> — instead of an always-on server for your
+            app's API, each incoming request can trigger its own Lambda function through API
+            Gateway. There's no server to manage, and it costs nothing while no one's making
+            requests.
+          </li>
+          <li>
+            <strong>Stream processing</strong> — as a continuous flow of data comes in (site clicks,
+            sensor readings), Lambda can process each new piece the moment it arrives instead of
+            waiting to handle it all later in a batch.
+          </li>
+          <li>
+            <strong>Orchestrated workflows (Step Functions)</strong> — for a task with several
+            steps that must happen in order (charge the customer → update inventory → send a
+            confirmation), Step Functions can chain multiple Lambda functions together and
+            automatically retry a step that fails.
+          </li>
+        </ul>
         <CodeBlock
           language="typescript"
           code={`// Runs ONCE per cold start, then reused by every warm invocation —
@@ -195,10 +235,34 @@ export async function handler(event: S3Event) {
           the "folders" are just prefixes in the key. Storage is effectively unlimited and it's
           built for 99.999999999% (11 nines) durability.
         </p>
-        <p>
-          <strong>Commonly used for:</strong> user uploads, images and video, hosting a static
-          React build (usually with the CloudFront CDN in front), backups, and log archives.
+        <p className="compare-label">
+          <strong>Commonly used for</strong>
         </p>
+        <ul>
+          <li>
+            <strong>User uploads</strong> — profile pictures, PDFs, videos, anything a user adds
+            through the app. It gets dropped straight into a bucket instead of living on your
+            server.
+          </li>
+          <li>
+            <strong>Hosting a static website</strong> — build your React app once, upload the
+            output files to a bucket, and S3 serves them directly (usually with the CloudFront CDN
+            in front so pages load fast everywhere).
+          </li>
+          <li>
+            <strong>Data lakes queried with Athena</strong> — dump raw logs or event data into S3
+            as plain files, then run SQL-style queries against them with Athena instead of loading
+            everything into a database first.
+          </li>
+          <li>
+            <strong>Backups and log archives</strong> — a cheap, practically bottomless place to
+            keep database backups and old logs you rarely open but can't throw away.
+          </li>
+          <li>
+            <strong>Disaster recovery</strong> — a bucket can automatically keep a copy of itself
+            in a second AWS region, so one region having a bad day doesn't mean losing the data.
+          </li>
+        </ul>
         <div className="concept">
           <p className="concept-label">Key ideas</p>
           <ul>
@@ -215,12 +279,96 @@ export async function handler(event: S3Event) {
             <li>
               <strong>S3 isn't a database.</strong> You can't query what's inside a file, and you
               replace an object as a whole rather than editing it. The usual pattern is that S3
-              stores the file and your database stores its key plus the metadata.
+              stores the file and your database stores its key plus the metadata. To actually run
+              SQL over a pile of objects (Parquet, CSV, JSON), point <strong>Athena</strong> at the
+              bucket instead of looping over files yourself.
             </li>
             <li>
-              <strong>Storage classes</strong> trade retrieval speed for price: Standard, then
-              Infrequent Access, then Glacier (cheap archive that takes minutes to hours to
-              retrieve). <em>Lifecycle rules</em> move old objects down automatically.
+              <strong>Downloads cost money</strong> (~$0.09/GB out of S3). For anything fetched
+              often or from around the world, put <strong>CloudFront</strong> in front — it caches
+              at edge locations, which ends up both faster and cheaper than serving straight from
+              S3.
+            </li>
+            <li>
+              <strong>Lifecycle rules are the biggest cost lever.</strong> A rule can auto-move
+              objects to a cheaper storage class after N days and delete them after N more — e.g. a
+              100&nbsp;GB backup nobody's touched in two years drops from ~$2.30/mo on Standard to
+              ~$0.10/mo in Deep Archive, with nobody having to remember to move it.
+            </li>
+          </ul>
+        </div>
+
+        <p className="compare-label">
+          <strong>Storage classes</strong> — same durability, priced by how fast you need it back:
+        </p>
+        <table className="ref-table">
+          <thead>
+            <tr>
+              <th>Class</th>
+              <th>~Cost / GB / mo</th>
+              <th>Retrieval</th>
+              <th>Use it for</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Standard</td>
+              <td>$0.023</td>
+              <td>Instant</td>
+              <td>Frequently accessed data</td>
+            </tr>
+            <tr>
+              <td>Standard-IA</td>
+              <td>$0.0125</td>
+              <td>Instant</td>
+              <td>Infrequent access (monthly backups)</td>
+            </tr>
+            <tr>
+              <td>Glacier Flexible</td>
+              <td>$0.0036</td>
+              <td>Hours</td>
+              <td>Compliance archives, rarely opened</td>
+            </tr>
+            <tr>
+              <td>Glacier Deep Archive</td>
+              <td>$0.00099</td>
+              <td>12+ hours</td>
+              <td>Long-term regulatory archives</td>
+            </tr>
+          </tbody>
+        </table>
+        <p className="callout">
+          Unsure how a given object will be accessed? <strong>Intelligent-Tiering</strong> watches
+          actual access patterns and moves objects between tiers for you.
+        </p>
+
+        {/* ---------------- Availability Zones & Regions ---------------- */}
+        <h4 className="topic">Availability Zones &amp; Regions</h4>
+        <p>
+          A <strong>Region</strong> is a geographic area AWS operates in — <code>us-east-1</code>{" "}
+          is Northern Virginia. An <strong>Availability Zone (AZ)</strong> is one physically
+          separate data center inside that region; a region is made up of several AZs.
+        </p>
+        <div className="concept">
+          <p className="concept-label">Key ideas</p>
+          <ul>
+            <li>
+              Spreading a resource across multiple AZs is how AWS avoids one data center's bad day
+              (a power outage, a hardware failure) from taking the whole app down with it.
+            </li>
+            <li>
+              It also comes up for compliance — some regulations require data to physically stay
+              within a specific country or region.
+            </li>
+            <li>
+              <strong>How S3 uses this:</strong> S3 automatically stores copies of your objects
+              across multiple AZs in a region for you. That's part of why it's so durable, and it
+              isn't something you have to configure.
+            </li>
+            <li>
+              <strong>How RDS uses this:</strong> a "Multi-AZ" database (see the RDS section below)
+              keeps a live standby copy in a different AZ, ready to take over automatically if the
+              primary's data center has a problem.
             </li>
           </ul>
         </div>
@@ -228,43 +376,48 @@ export async function handler(event: S3Event) {
         {/* ---------------- RDS ---------------- */}
         <h4 className="topic">RDS — Relational Database Service</h4>
         <p>
-          A managed relational database: Postgres, MySQL, SQL Server and others, plus{" "}
-          <strong>Aurora</strong>, AWS's own Postgres/MySQL-compatible engine. You still design the
-          schema and write the SQL. AWS runs the server underneath.
+          RDS is AWS's managed relational database service — Postgres, MySQL, and others. You
+          could technically install Postgres yourself on an EC2 server, but RDS exists
+          specifically to take a handful of painful, error-prone jobs off your plate.
         </p>
-        <table className="ref-table">
-          <thead>
-            <tr>
-              <th>AWS handles</th>
-              <th>You still handle</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Provisioning, OS and database patching</td>
-              <td>Schema design, queries, indexes</td>
-            </tr>
-            <tr>
-              <td>Automated backups, point-in-time restore</td>
-              <td>Choosing the instance size</td>
-            </tr>
-            <tr>
-              <td>Failover to a standby, read replicas (a few clicks)</td>
-              <td>Deciding when you need them</td>
-            </tr>
-          </tbody>
-        </table>
+        <div className="concept">
+          <p className="concept-label">What RDS solves</p>
+          <ul>
+            <li>
+              <strong>Backups.</strong> Without RDS, you'd have to write and schedule your own
+              backup scripts and hope you remember before it's too late. RDS runs automated
+              backups on a schedule and can restore your database to almost any point in time with
+              a few clicks.
+            </li>
+            <li>
+              <strong>Patching.</strong> Without RDS, you're responsible for applying database
+              security patches yourself, on your own schedule, without breaking anything. RDS
+              applies patches for you during a maintenance window you choose.
+            </li>
+            <li>
+              <strong>Replicas.</strong> Without RDS, standing up a second copy of your database and
+              keeping it continuously in sync with the first is genuinely hard to get right. With
+              RDS, adding a replica is a few clicks, and AWS keeps it in sync.
+            </li>
+            <li>
+              <strong>Failover.</strong> Without RDS, if your database server crashes, someone has
+              to notice and manually point the app at a backup. With Multi-AZ turned on, RDS
+              detects the failure and switches over automatically, usually within a minute or two.
+            </li>
+          </ul>
+        </div>
         <div className="concept">
           <p className="concept-label">Key ideas</p>
           <ul>
             <li>
-              <strong>Multi-AZ vs. read replica</strong> is the classic question.{" "}
-              <strong>Multi-AZ</strong> keeps a standby in another data center, written to at the
-              same moment as the primary. It's there for <em>availability</em>: if the primary
-              fails, AWS switches over automatically in about a minute or two, and in the standard
-              setup you can't read from the standby. A <strong>read replica</strong> is a copy
-              that's updated asynchronously and that you <em>can</em> read from. It's there for{" "}
-              <em>performance</em>, and it lags slightly behind the primary.
+              <strong>Multi-AZ</strong> is an always-on safety copy of your database in a different
+              data center, there purely for backup and failover — you don't read from it day to
+              day.
+            </li>
+            <li>
+              <strong>A read replica</strong> is an extra copy you <em>can</em> send read traffic
+              to, to take load off the main database. It's there for performance, not safety, and
+              it can lag slightly behind the primary.
             </li>
             <li>
               <strong>Scaling:</strong> you can move up to a bigger instance and add read replicas,
@@ -282,59 +435,35 @@ export async function handler(event: S3Event) {
         {/* ---------------- DynamoDB ---------------- */}
         <h4 className="topic">DynamoDB</h4>
         <p>
-          A fully managed, serverless NoSQL key-value and document database. There's no instance to
-          size and no server to patch, and lookups take single-digit milliseconds whether the
-          table has a thousand items or a billion.
+          AWS's fully managed, very high-performing NoSQL database. No servers to size or manage,
+          and it handles enormous amounts of traffic with very fast lookups, scaling horizontally
+          almost without limit.
         </p>
-        <p>
-          <strong>Commonly used for:</strong> sessions, shopping carts, user preferences, event and
-          status logs, IoT readings. In other words, huge volume, always looked up the same way.
-        </p>
-        <CodeBlock
-          language="plaintext"
-          code={`Table: order_events
-partition key: orderId      sort key: timestamp
-────────────────────────────────────────────────────────────
-orderId=1042  timestamp=2026-09-20T10:01  status=placed
-orderId=1042  timestamp=2026-09-20T10:14  status=packed
-orderId=1042  timestamp=2026-09-20T16:40  status=shipped
-orderId=1043  timestamp=2026-09-20T10:02  status=placed
-
-"all events for order 1042, newest first" → one fast Query
-"all events where status=shipped"          → full Scan, or add an index`}
-        />
-        <div className="concept">
-          <p className="concept-label">Key ideas</p>
-          <ul>
-            <li>
-              <strong>The key design is everything.</strong> The <em>partition key</em> decides
-              which storage partition an item lives on. The optional <em>sort key</em> orders items
-              within that partition and allows range queries. A fast <code>Query</code> must go
-              through the key. Anything else is a <code>Scan</code> (reads the whole table: slow and
-              expensive) or needs a <strong>Global Secondary Index</strong>.
-            </li>
-            <li>
-              <strong>Design around the questions you'll ask, not the shape of the data.</strong>{" "}
-              That's the reverse of SQL, where you normalize first and query freely later. There are
-              no joins, so related data is often duplicated on purpose.
-            </li>
-            <li>
-              <strong>Hot partitions:</strong> a partition key with only a few distinct values (like{" "}
-              <code>status</code>) sends most of the traffic to one partition and throttles it.
-            </li>
-            <li>
-              Reads are <strong>eventually consistent</strong> by default, and strongly consistent
-              reads are an opt-in. For capacity you choose on-demand (pay per request) or
-              provisioned (cheaper under steady, predictable load).
-            </li>
-          </ul>
-        </div>
+        <ul>
+          <li>
+            Every item is found by a simple key, which is what keeps reads and writes fast even at
+            huge scale.
+          </li>
+          <li>
+            It's fully managed — no server to size, patch, or scale by hand; AWS grows or shrinks
+            capacity automatically as traffic changes.
+          </li>
+          <li>
+            Commonly used for simple, high-volume data that doesn't need complex relationships —
+            sessions, shopping carts, and similar.
+          </li>
+        </ul>
 
         <h3 className="part">Operations &amp; security</h3>
 
         {/* ---------------- CloudWatch ---------------- */}
         <h4 className="topic">CloudWatch</h4>
-        <p>AWS's built-in monitoring, made of four parts:</p>
+        <p>
+          AWS's own built-in monitoring for AWS resources and services — not a full third-party
+          application-performance-monitoring product. It's scoped to watching AWS infrastructure
+          (logs, metrics, alarms), not tracing what happens line-by-line inside your code.
+        </p>
+        <p>It's made of four parts:</p>
         <ul>
           <li>
             <strong>Logs</strong> — collects what your app writes to stdout or a log file
@@ -350,32 +479,16 @@ orderId=1043  timestamp=2026-09-20T10:02  status=placed
             <strong>Dashboards</strong> — graphs of all of the above
           </li>
         </ul>
-        <div className="concept">
-          <p className="concept-label">Key ideas</p>
-          <ul>
-            <li>
-              Lambda sends its logs to CloudWatch automatically. EC2 doesn't: you have to install the{" "}
-              <strong>CloudWatch agent</strong> to ship log files.
-            </li>
-            <li>
-              <strong>Gotcha:</strong> EC2's default metrics include CPU, network and disk I/O, but{" "}
-              <strong>not memory</strong>, because AWS can't see inside your OS. Memory metrics also
-              need the agent.
-            </li>
-            <li>
-              <strong>Alarms drive automation.</strong> An Auto Scaling Group adds instances because
-              a CloudWatch alarm on CPU fired.
-            </li>
-            <li>
-              Log groups keep logs <strong>forever by default</strong>. Set a retention period or
-              the bill keeps growing.
-            </li>
-          </ul>
-        </div>
 
         {/* ---------------- IAM ---------------- */}
         <h4 className="topic">IAM — Identity and Access Management</h4>
-        <p>Controls who can do what, on which AWS resource. It has four building blocks:</p>
+        <p>
+          Controls who or what can access AWS <em>resources and services</em> — who can read this
+          S3 bucket, who can launch an EC2 instance. It is <strong>not</strong> related to your own
+          application's user accounts or login system; that's a separate concern the app itself
+          handles.
+        </p>
+        <p>It has four building blocks:</p>
         <ul>
           <li>
             <strong>User</strong> — a person or app with long-term credentials (password or access
@@ -466,24 +579,21 @@ orderId=1043  timestamp=2026-09-20T10:02  status=placed
 
         {/* ---------------- IaC ---------------- */}
         <h4 className="topic">Infrastructure as Code — Terraform</h4>
+        <p>
+          Instead of clicking through the AWS console by hand, you write your infrastructure
+          (instances, databases, buckets, IAM roles) down as configuration files. Running Terraform
+          reads that configuration and automatically creates — or updates — the real resources to
+          match it.
+        </p>
         <ul>
-          <li>
-            You describe the infrastructure you want (instances, databases, buckets, IAM roles) in
-            code files. <code>terraform plan</code> shows what would change, and{" "}
-            <code>terraform apply</code> makes it so.
-          </li>
           <li>
             <strong>Why bother:</strong> dev, staging and prod get built from the same code, every
             change is reviewed in a PR and kept in git history, and there's no more "someone
             clicked something in the console and nobody knows what."
           </li>
           <li>
-            <strong>Declarative:</strong> you state the end result you want, and the tool works out
-            what to create, update or delete.
-          </li>
-          <li>
-            <strong>Options:</strong> Terraform (works across clouds), CloudFormation (AWS's own,
-            YAML/JSON), AWS CDK (write it in TypeScript).
+            <strong>Other options exist</strong> — CloudFormation (AWS's own version) and AWS CDK
+            (write it in TypeScript) solve the same problem. Terraform is just the most widely used.
           </li>
         </ul>
       </section>

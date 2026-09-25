@@ -1,0 +1,13 @@
+# Copy to terraform.tfvars and edit if you want to override any defaults.
+# Every value here is optional — the defaults already target the free tier.
+
+# region              = "us-east-1"
+# ec2_instance_type   = "t3.micro"
+# db_instance_class   = "db.t3.micro"
+
+# To SSH in (otherwise use SSM Session Manager, no key needed):
+# key_name            = "my-existing-keypair"
+# allowed_ssh_cidr    = "203.0.113.4/32"   # your IP, not the whole internet
+
+# Point at a different built frontend if you don't want the curriculum site:
+# frontend_dir        = "../../../curriculum/dist"

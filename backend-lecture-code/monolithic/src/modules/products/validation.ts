@@ -32,8 +32,12 @@ export const updateProductBodySchema = z
   .object({
     name: z.string().trim().min(1).optional(),
     priceCents: z.number().int().nonnegative().optional(),
+    // #demo-s3 — set once a presigned upload finishes (see modules/uploads)
+    imageUrl: z.string().trim().min(1).nullable().optional(),
   })
-  .refine((data) => data.name !== undefined || data.priceCents !== undefined, {
-    message: "nothing to update",
-  });
+  .refine(
+    (data) =>
+      data.name !== undefined || data.priceCents !== undefined || data.imageUrl !== undefined,
+    { message: "nothing to update" },
+  );
 export type UpdateProductBody = z.infer<typeof updateProductBodySchema>;

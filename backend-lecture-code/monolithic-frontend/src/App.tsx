@@ -3,6 +3,7 @@ import "./App.css";
 import ProductsPage from "./pages/ProductsPage";
 import InventoryPage from "./pages/InventoryPage";
 import OrdersPage from "./pages/OrdersPage";
+import AskAI from "./components/AskAI";
 
 type Tab = "products" | "inventory" | "orders";
 type Theme = "light" | "dark";
@@ -92,6 +93,10 @@ function App() {
         {tab === "inventory" && <InventoryPage />}
         {tab === "orders" && <OrdersPage customerId={customerId} />}
       </main>
+
+      <footer className="app-footer">
+        <AskAI />
+      </footer>
     </div>
   );
 }

@@ -17,6 +17,9 @@ export const products = pgTable("products", {
   name: varchar("name", { length: 160 }).notNull(),
   priceCents: integer("price_cents").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  // #demo-s3 — set via PATCH /products/:id once the presigned upload
+  // finishes; nullable since most seeded products never get an image.
+  imageUrl: varchar("image_url", { length: 500 }),
 });
 
 export const inventory = pgTable("inventory", {

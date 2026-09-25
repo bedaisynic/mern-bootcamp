@@ -17,7 +17,6 @@ import {
 // middleware in lib/errors.ts, mounted once in server.ts, is what
 // actually turns it into a response.
 
-
 export const productsController = {
   async list(req: Request, res: Response, next: NextFunction) {
     try {

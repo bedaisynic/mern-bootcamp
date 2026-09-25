@@ -42,6 +42,29 @@ services:
       timeout: 5s
       retries: 5
 
+  # #demo-s3 — S3-compatible object storage for local dev, via LocalStack (a
+  # real S3 API emulator; MinIO's Docker image now requires a paid login, and
+  # LocalStack's own `latest` tag has since moved behind a license too — 3.0
+  # is the last fully free Community-edition tag with S3 support). Same SDK
+  # calls (S3Client, PutObjectCommand, getSignedUrl) work unchanged against
+  # real S3 in production; only the endpoint/credentials env vars change.
+  localstack:
+    image: localstack/localstack:3.0
+    container_name: backend-lecture-localstack
+    restart: unless-stopped
+    environment:
+      SERVICES: s3
+    ports:
+      - "4566:4566" # edge port — all emulated AWS APIs, including S3
+    volumes:
+      - backend-lecture-localstackdata:/var/lib/localstack
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
 volumes:
   backend-lecture-pgdata:
   backend-lecture-redisdata:
+  backend-lecture-localstackdata:

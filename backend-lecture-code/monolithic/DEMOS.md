@@ -15,6 +15,8 @@ all of them.
 | `#demo-idempotency` | Idempotency-Key header | `POST /inventory` |
 | `#demo-error-handling` | `AppError` classes + one central `errorHandler` | any route |
 | `#demo-blocking` | CPU work blocks the event loop | `GET /blocking` |
+| `#demo-s3` | Presigned upload — the server never touches the file's bytes | `POST /uploads/presign` |
+| `#demo-secrets-manager` | Same code path for a `.env` secret locally vs. Secrets Manager deployed | `POST /ai/ask` |
 
 Setup: `docker-compose up`, `npm run db:push`, `npm run db:seed`, `npm run dev`.
 The server runs on `http://localhost:3100`.
@@ -245,3 +247,60 @@ curl -s localhost:3100/products/abc         # ZodError      → 400 VALIDATION_E
 curl localhost:3100/blocking
 curl localhost:3100/health    # hangs until /blocking finishes
 ```
+
+---
+
+## `#demo-s3` — presigned upload
+
+**Where:** `src/modules/uploads/` — `s3-client.ts` (the S3 client, created
+once at module load), `service.ts` → `presign()`. The product's
+`image_url` column is set afterward via the existing
+`PATCH /products/:id`. Locally, `S3Client` points at the `localstack`
+docker-compose service instead of real S3 — same SDK calls either way, only
+the endpoint/credentials env vars differ (see `.env`).
+
+**Run:**
+
+```bash
+# 1. ask the server to sign an upload URL — the server never sees the file
+RESP=$(curl -s -X POST localhost:3100/uploads/presign \
+  -H 'content-type: application/json' \
+  -d '{"filename":"widget.png","contentType":"image/png"}')
+echo "$RESP"
+
+# 2. upload the file straight to that URL — no Express route involved
+UPLOAD_URL=$(echo "$RESP" | node -pe 'JSON.parse(require("fs").readFileSync(0)).uploadUrl')
+curl -s -X PUT "$UPLOAD_URL" -H 'content-type: image/png' --data-binary @/path/to/widget.png
+
+# 3. attach the resulting URL to a product
+OBJECT_URL=$(echo "$RESP" | node -pe 'JSON.parse(require("fs").readFileSync(0)).objectUrl')
+curl -s -X PATCH localhost:3100/products/$PID \
+  -H 'content-type: application/json' \
+  -d "{\"imageUrl\":\"$OBJECT_URL\"}"
+```
+
+Watch the Network tab while the frontend does this: the `PUT` in step 2 goes
+straight to `localhost:4566` (or, in prod, straight to S3), never to
+`localhost:3100`.
+
+---
+
+## `#demo-secrets-manager` — one code path, two sources
+
+**Where:** `src/lib/config.ts` → `getSecret()`, used by
+`src/modules/ai/controller.ts`. No AI SDK is installed and no network call
+happens — the endpoint exists to prove the *retrieval* works, not to call a
+real API.
+
+**Run:**
+
+```bash
+curl -s -X POST localhost:3100/ai/ask -H 'content-type: application/json' -d '{}'
+```
+
+With `AWS_SECRETS_ENABLED=false` (the default — see `.env`), `getSecret()`
+reads `CLAUDE_API_KEY` straight from the environment, same as every other
+config value in this project. Flip it to `true` (only meaningful with real
+AWS credentials and a secret actually created under
+`SECRETS_MANAGER_SECRET_ID`) and the exact same function call fetches it
+from AWS Secrets Manager instead — nothing else in the handler changes.

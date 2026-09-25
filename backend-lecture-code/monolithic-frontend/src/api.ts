@@ -6,6 +6,7 @@ export type Product = {
   name: string;
   priceCents: number;
   createdAt: string;
+  imageUrl: string | null;
 };
 
 export type InventoryRow = {
@@ -93,4 +94,40 @@ export const api = {
       body: JSON.stringify({ status }),
     });
   },
+
+  // #demo-s3 — ask the server to sign an upload URL, then PUT the file
+  // straight to it (see uploadFileDirect) — the file's bytes never pass
+  // through this API.
+  presignUpload(filename: string, contentType: string): Promise<{ uploadUrl: string; objectUrl: string }> {
+    return request(`/uploads/presign`, {
+      method: "POST",
+      body: JSON.stringify({ filename, contentType }),
+    });
+  },
+
+  setProductImage(id: number, imageUrl: string): Promise<Product> {
+    return request<Product>(`/products/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ imageUrl }),
+    });
+  },
+
+  // #demo-secrets-manager
+  askAI(): Promise<{ reply: string; note: string }> {
+    return request(`/ai/ask`, { method: "POST", body: JSON.stringify({}) });
+  },
 };
+
+// #demo-s3 — a raw PUT straight to the presigned URL, not through
+// request()/API_BASE: this call goes directly to S3 (or, locally,
+// localstack), not to our own API.
+export async function uploadFileDirect(uploadUrl: string, file: File): Promise<void> {
+  const res = await fetch(uploadUrl, {
+    method: "PUT",
+    headers: { "Content-Type": file.type },
+    body: file,
+  });
+  if (!res.ok) {
+    throw new ApiError(`upload failed (${res.status})`, res.status);
+  }
+}

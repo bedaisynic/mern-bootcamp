@@ -1,0 +1,29 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ViewS3",
+      "Effect": "Allow",
+      "Action": ["s3:GetObject", "s3:ListBucket", "s3:GetBucketPolicy", "s3:GetBucketAcl"],
+      "Resource": ["arn:aws:s3:::monolithic-shop-*", "arn:aws:s3:::monolithic-shop-*/*"]
+    },
+    {
+      "Sid": "ViewRDS",
+      "Effect": "Allow",
+      "Action": ["rds:DescribeDBInstances", "rds:DescribeDBSnapshots", "rds:ListTagsForResource"],
+      "Resource": "*"
+    },
+    {
+      "Sid": "ViewCloudWatch",
+      "Effect": "Allow",
+      "Action": [
+        "cloudwatch:GetMetricData",
+        "cloudwatch:DescribeAlarms",
+        "logs:GetLogEvents",
+        "logs:FilterLogEvents",
+        "logs:DescribeLogGroups"
+      ],
+      "Resource": "*"
+    }
+  ]
+}

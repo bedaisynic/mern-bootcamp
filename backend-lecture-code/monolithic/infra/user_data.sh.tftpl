@@ -1,0 +1,126 @@
+#!/usr/bin/env bash
+# EC2 bootstrap for the monolithic Express API (Amazon Linux 2023).
+# Everything it prints is captured to /var/log/user-data.log, which the
+# CloudWatch agent also ships to CloudWatch Logs.
+#
+# src_hash=${src_hash}   # (changing this line replaces the instance on `apply`)
+set -euxo pipefail
+exec > >(tee -a /var/log/user-data.log) 2>&1
+
+echo "=== [1/8] installing packages ==="
+# npm ships inside the nodejs package on AL2023; tar + aws-cli are preinstalled.
+dnf install -y nodejs tar redis6 amazon-cloudwatch-agent
+
+echo "=== [2/8] starting local Redis ==="
+# The app calls redisClient.connect() at boot, so Redis must be up. Running it
+# on-box (instead of paid ElastiCache) keeps this in the free tier.
+systemctl enable --now redis6
+
+echo "=== [3/8] downloading app bundle from S3 ==="
+mkdir -p /opt/monolithic
+aws s3 cp "s3://${deploy_bucket}/${app_object_key}" /tmp/app.tar.gz --region ${region}
+tar -xzf /tmp/app.tar.gz -C /opt/monolithic
+chown -R ec2-user:ec2-user /opt/monolithic
+
+echo "=== [4/8] writing environment file ==="
+mkdir -p /etc/monolithic
+cat > /etc/monolithic/app.env <<EOF
+PORT=${api_port}
+DATABASE_URL=${database_url}
+REDIS_URL=${redis_url}
+
+# #demo-s3 — S3_ENDPOINT is deliberately left unset here: with no endpoint
+# override, the SDK talks to real S3 directly, using this role's IAM
+# credentials (not the access-key vars monolithic/.env uses for local dev
+# against localstack).
+S3_REGION=${region}
+S3_BUCKET=${s3_bucket}
+
+# #demo-secrets-manager — AWS_SECRETS_ENABLED stays unset (defaults to
+# false), so this fake key is read straight out of this file, same as
+# DATABASE_URL above — the exact anti-pattern the Notes' Secrets Manager
+# section describes. Left this way on purpose; see infra/README.md.
+CLAUDE_API_KEY=${claude_api_key}
+EOF
+chmod 600 /etc/monolithic/app.env
+
+echo "=== [5/8] installing dependencies + building ==="
+cd /opt/monolithic
+sudo -u ec2-user npm ci
+
+echo "=== [6/8] applying database schema (drizzle push) ==="
+# Schema only — the app's full seed is 10M+ rows and is intentionally skipped.
+# `yes |` answers any interactive drizzle prompt on a fresh database.
+yes | sudo -u ec2-user env DATABASE_URL="${database_url}" npx drizzle-kit push || \
+  echo "WARN: drizzle push failed; check DB connectivity, continuing"
+
+sudo -u ec2-user npm run build
+
+echo "=== [7/8] installing systemd service ==="
+mkdir -p /var/log/monolithic
+chown ec2-user:ec2-user /var/log/monolithic
+
+cat > /etc/systemd/system/monolithic.service <<'EOF'
+[Unit]
+Description=Monolithic Express API
+After=network-online.target redis6.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ec2-user
+WorkingDirectory=/opt/monolithic
+EnvironmentFile=/etc/monolithic/app.env
+ExecStart=/usr/bin/node dist/server.js
+Restart=always
+RestartSec=3
+StandardOutput=append:/var/log/monolithic/app.log
+StandardError=append:/var/log/monolithic/app.log
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl daemon-reload
+systemctl enable --now monolithic
+
+echo "=== [8/8] configuring CloudWatch agent (logs + memory metric) ==="
+# EC2 does NOT report memory by default (the Notes' gotcha) and does not ship
+# app logs on its own — the agent does both.
+cat > /opt/aws/amazon-cloudwatch-agent/etc/config.json <<EOF
+{
+  "agent": { "metrics_collection_interval": 60 },
+  "metrics": {
+    "namespace": "Monolithic/EC2",
+    "append_dimensions": { "InstanceId": "\$${aws:InstanceId}" },
+    "metrics_collected": {
+      "mem":  { "measurement": ["mem_used_percent"] },
+      "disk": { "measurement": ["disk_used_percent"], "resources": ["/"] }
+    }
+  },
+  "logs": {
+    "logs_collected": {
+      "files": {
+        "collect_list": [
+          {
+            "file_path": "/var/log/monolithic/app.log",
+            "log_group_name": "${app_log_group}",
+            "log_stream_name": "{instance_id}"
+          },
+          {
+            "file_path": "/var/log/user-data.log",
+            "log_group_name": "${userdata_log_group}",
+            "log_stream_name": "{instance_id}"
+          }
+        ]
+      }
+    }
+  }
+}
+EOF
+
+/opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
+  -a fetch-config -m ec2 -s \
+  -c file:/opt/aws/amazon-cloudwatch-agent/etc/config.json
+
+echo "=== bootstrap complete ==="

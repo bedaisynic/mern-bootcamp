@@ -11,6 +11,8 @@ import { productsRouter } from "./modules/products/router";
 import { inventoryRouter } from "./modules/inventory/router";
 import { ordersRouter } from "./modules/orders/router";
 import { activityRouter } from "./modules/activity/router";
+import { uploadsRouter } from "./modules/uploads/router";
+import { aiRouter } from "./modules/ai/router";
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3100;
@@ -39,6 +41,8 @@ app.use("/products", productsRouter);
 app.use("/inventory", inventoryRouter);
 app.use("/orders", ordersRouter);
 app.use("/activity", activityRouter); // #demo-pagination
+app.use("/uploads", uploadsRouter); // #demo-s3
+app.use("/ai", aiRouter); // #demo-secrets-manager
 
 // GET http://localhost:3100/health
 app.get("/health", async (_req, res) => {

@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { api, ApiError, type Product } from "../api";
+import { useEffect, useRef, useState } from "react";
+import { api, ApiError, uploadFileDirect, type Product } from "../api";
 import Pagination from "../components/Pagination";
 
 const PAGE_SIZE = 12;
@@ -16,6 +16,12 @@ export default function ProductsPage({ customerId }: { customerId: number | null
   const [quantities, setQuantities] = useState<Record<number, number>>({});
   const [feedback, setFeedback] = useState<Record<number, OrderFeedback>>({});
   const [placingId, setPlacingId] = useState<number | null>(null);
+
+  // #demo-s3 — one hidden file input shared by every card; the button that
+  // opened it is tracked in uploadTargetId
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadTargetId, setUploadTargetId] = useState<number | null>(null);
+  const [uploadingId, setUploadingId] = useState<number | null>(null);
 
   // debounce the raw search text before it drives any fetch
   useEffect(() => {
@@ -80,8 +86,46 @@ export default function ProductsPage({ customerId }: { customerId: number | null
     }
   }
 
+  // #demo-s3 — presign → direct PUT to S3/localstack → patch the product
+  // with the resulting URL. The file's bytes never pass through this API.
+  function triggerUpload(productId: number) {
+    setUploadTargetId(productId);
+    fileInputRef.current?.click();
+  }
+
+  async function handleFileSelected(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allows re-selecting the same file later
+    if (!file || uploadTargetId === null) return;
+
+    const productId = uploadTargetId;
+    setUploadingId(productId);
+    try {
+      const { uploadUrl, objectUrl } = await api.presignUpload(
+        file.name,
+        file.type || "application/octet-stream",
+      );
+      await uploadFileDirect(uploadUrl, file);
+      const updated = await api.setProductImage(productId, objectUrl);
+      setProducts((rows) => rows.map((p) => (p.id === productId ? updated : p)));
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : "Failed to upload image.";
+      setFeedback((f) => ({ ...f, [productId]: { type: "error", message } }));
+    } finally {
+      setUploadingId(null);
+      setUploadTargetId(null);
+    }
+  }
+
   return (
     <section>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        style={{ display: "none" }}
+        onChange={handleFileSelected}
+      />
       <div className="toolbar">
         <input
           placeholder="Search products by name or SKU..."
@@ -99,6 +143,17 @@ export default function ProductsPage({ customerId }: { customerId: number | null
       <div className="grid">
         {products.map((p) => (
           <div className="card" key={p.id}>
+            {p.imageUrl ? (
+              <img src={p.imageUrl} alt={p.name} className="product-image" />
+            ) : (
+              <button
+                className="upload-link"
+                disabled={uploadingId === p.id}
+                onClick={() => triggerUpload(p.id)}
+              >
+                {uploadingId === p.id ? "Uploading..." : "Upload image"}
+              </button>
+            )}
             <h3>{p.name}</h3>
             <p className="muted">SKU: {p.sku}</p>
             <p className="price">${(p.priceCents / 100).toFixed(2)}</p>

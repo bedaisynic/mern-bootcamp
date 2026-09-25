@@ -1,0 +1,6 @@
+{
+  "name": "webhook-handler",
+  "private": true,
+  "type": "module",
+  "description": "Reference Lambda — a webhook handler for unpredictable, bursty traffic. See README.md."
+}

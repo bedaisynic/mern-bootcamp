@@ -57,9 +57,14 @@ async function seed() {
   console.log(`inserted ${insertedProducts.length} products`);
 
   // ---- inventory: one row per product ----
+  // updatedAt is spread over the last few weeks instead of left at its
+  // defaultNow() — every row landing on the exact same seed-run timestamp
+  // (and usually some off-hour) makes an otherwise-realistic demo dataset
+  // look obviously seeded.
   const inventoryRows = insertedProducts.map((p) => ({
     productId: p.id,
     quantity: faker.number.int({ min: 0, max: 250 }),
+    updatedAt: faker.date.recent({ days: 21 }),
   }));
 
   let inventoryCount = 0;

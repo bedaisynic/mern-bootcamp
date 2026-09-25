@@ -1,0 +1,14 @@
+# Terraform state — may contain the DB password. Never commit.
+*.tfstate
+*.tfstate.*
+.terraform/
+crash.log
+# NOTE: .terraform.lock.hcl is intentionally NOT ignored — commit it so everyone
+# gets the same provider versions.
+
+# Local variable overrides
+*.tfvars
+!*.tfvars.example
+
+# Build artifacts produced by this module
+build/
