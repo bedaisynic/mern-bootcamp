@@ -137,7 +137,7 @@ export const WEEKS: Week[] = [
       {
         slug: "day14-database-performance",
         title: "Database Performance",
-        pages: ["lecture", "notes"],
+        pages: ["lecture", "notes", "concepts"],
       },
       {
         slug: "additional-backend-topics",
