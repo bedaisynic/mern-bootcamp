@@ -2,7 +2,6 @@ import { Request, Response } from "express";
 import { pool } from "../../db/pool";
 
 import * as orderService from "./service";
-import * as orderRepository from "./repository";
 
 export const getAll = async (req: Request, res: Response) => {
   // validation
@@ -188,7 +187,7 @@ export const getByCustomerIndexed = async (req: Request, res: Response) => {
 
 export const create = async (req: Request, res: Response) => {
   // validation
-  const { productId, quantity } = req.body;
+  const { productId, quantity, customerId } = req.body;
   if (typeof productId !== "number" || !Number.isInteger(productId)) {
     return res
       .status(400)
@@ -198,6 +197,14 @@ export const create = async (req: Request, res: Response) => {
     return res
       .status(400)
       .json({ error: { message: "quantity must be a positive number" } });
+  }
+  if (
+    customerId !== undefined &&
+    (typeof customerId !== "number" || !Number.isInteger(customerId))
+  ) {
+    return res
+      .status(400)
+      .json({ error: { message: "customerId must be an integer" } });
   }
 
   // service logic — new orders always start out pending
@@ -231,15 +238,17 @@ export const create = async (req: Request, res: Response) => {
       [quantity, productId],
     );
 
+    // customer_id and customer_id_indexed store the same value — see the
+    // #demo-indexing note in db/schema.ts. both are set here so orders
+    // placed through the API show up in the by-customer lookups too.
     const { rows } = await client.query(
-      "INSERT INTO orders (product_id, quantity, status) VALUES ($1, $2, $3) RETURNING *",
-      [productId, quantity, "pending"],
+      `INSERT INTO orders (product_id, quantity, status, customer_id, customer_id_indexed)
+       VALUES ($1, $2, $3, $4, $4) RETURNING *`,
+      [productId, quantity, "pending", customerId ?? null],
     );
 
-    const newOrder = await orderRepository.insert(productId, quantity, "pending");
-
     await client.query("COMMIT");
-    res.status(201).json(newOrder);
+    res.status(201).json(rows[0]);
   } catch (err: any) {
     await client.query("ROLLBACK");
     if (err.code === "23503") {

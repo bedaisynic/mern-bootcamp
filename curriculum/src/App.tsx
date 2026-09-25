@@ -85,6 +85,9 @@ import D13Lab from "./week3/day13-layered-architecture/Lab";
 import D14Lecture from "./week3/day14-database-performance/Lecture";
 import D14Notes from "./week3/day14-database-performance/Notes";
 import D14Concepts from "./week3/day14-database-performance/Concepts";
+import D15Lecture from "./week3/day15-aws-deployment/lecture/Lecture";
+import D15Notes from "./week3/day15-aws-deployment/Notes";
+import D15Concepts from "./week3/day15-aws-deployment/Concepts";
 
 import FullSqlFoundation from "./week3/additional-backend-topics/full-sql/Foundation";
 import FullSqlQueryOptimization from "./week3/additional-backend-topics/full-sql/QueryOptimization";
@@ -325,6 +328,19 @@ function App() {
       <Route
         path="/week3/day14-database-performance/concepts"
         element={<D14Concepts />}
+      />
+
+      <Route
+        path="/week3/day15-aws-deployment/lecture"
+        element={<D15Lecture />}
+      />
+      <Route
+        path="/week3/day15-aws-deployment/notes"
+        element={<D15Notes />}
+      />
+      <Route
+        path="/week3/day15-aws-deployment/concepts"
+        element={<D15Concepts />}
       />
 
       <Route

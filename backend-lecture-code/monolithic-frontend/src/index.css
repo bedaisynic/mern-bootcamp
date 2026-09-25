@@ -1,0 +1,90 @@
+:root {
+  --color-bg: #ffffff;
+  --color-bg-alt: #f9f9f9;
+  --color-text: #213547;
+  --color-text-muted: rgba(33, 53, 71, 0.65);
+  --color-border: rgba(0, 0, 0, 0.15);
+  --color-accent: #646cff;
+  --color-accent-hover: #747bff;
+  --color-card-bg: #ffffff;
+  --color-success: #1a7f37;
+  --color-success-bg: rgba(26, 127, 55, 0.12);
+  --color-error: #d1242f;
+  --color-error-bg: rgba(209, 36, 47, 0.12);
+  --color-pending-bg: rgba(191, 135, 0, 0.18);
+
+  color-scheme: light;
+
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color: var(--color-text);
+  background-color: var(--color-bg);
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+:root[data-theme="dark"] {
+  --color-bg: #1a1a1a;
+  --color-bg-alt: #242424;
+  --color-text: rgba(255, 255, 255, 0.87);
+  --color-text-muted: rgba(255, 255, 255, 0.6);
+  --color-border: rgba(255, 255, 255, 0.2);
+  --color-accent: #818cf8;
+  --color-accent-hover: #646cff;
+  --color-card-bg: #242424;
+  --color-success: #4ade80;
+  --color-success-bg: rgba(74, 222, 128, 0.15);
+  --color-error: #f87171;
+  --color-error-bg: rgba(248, 113, 113, 0.15);
+  --color-pending-bg: rgba(255, 184, 0, 0.18);
+
+  color-scheme: dark;
+}
+
+a {
+  font-weight: 500;
+  color: var(--color-accent);
+  text-decoration: inherit;
+}
+a:hover {
+  color: var(--color-accent-hover);
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  transition: background-color 0.2s, color 0.2s;
+}
+
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+}
+
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: var(--color-bg-alt);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+button:hover {
+  border-color: var(--color-accent);
+}
+button:focus,
+button:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}

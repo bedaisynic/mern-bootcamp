@@ -140,6 +140,11 @@ export const WEEKS: Week[] = [
         pages: ["lecture", "notes", "concepts"],
       },
       {
+        slug: "day15-aws-deployment",
+        title: "AWS",
+        pages: ["lecture", "notes", "concepts"],
+      },
+      {
         slug: "additional-backend-topics",
         title: "Additional Backend Topics",
         pages: [], // the group itself has no pages — its topics do
