@@ -198,6 +198,18 @@ export const WEEKS: Week[] = [
       },
     ],
   },
+  {
+    slug: "week4",
+    number: 4,
+    title: "Backend Advanced",
+    days: [
+      {
+        slug: "day16-auth-security",
+        title: "Day 16 - Authentication & Security",
+        pages: ["lecture", "notes", "concepts", "lab"],
+      },
+    ],
+  },
 ];
 
 /** Standalone notes that belong to no week — the cross-cutting "how to work" material. */

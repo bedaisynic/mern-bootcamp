@@ -98,6 +98,11 @@ import FullSqlVsNosql from "./week3/additional-backend-topics/full-sql/SqlVsNosq
 import NodeEventLoopNotes from "./week3/additional-backend-topics/node-event-loop-deep-dive/Notes";
 import NodeEventLoopConcepts from "./week3/additional-backend-topics/node-event-loop-deep-dive/Concepts";
 
+import D16Lecture from "./week4/day16-auth-security/lecture/Lecture";
+import D16Notes from "./week4/day16-auth-security/Notes";
+import D16Concepts from "./week4/day16-auth-security/Concepts";
+import D16Lab from "./week4/day16-auth-security/Lab";
+
 function App() {
   return (
     <Routes>
@@ -372,6 +377,17 @@ function App() {
         path="/week3/additional-backend-topics/node-event-loop-deep-dive/concepts"
         element={<NodeEventLoopConcepts />}
       />
+
+      <Route
+        path="/week4/day16-auth-security/lecture"
+        element={<D16Lecture />}
+      />
+      <Route path="/week4/day16-auth-security/notes" element={<D16Notes />} />
+      <Route
+        path="/week4/day16-auth-security/concepts"
+        element={<D16Concepts />}
+      />
+      <Route path="/week4/day16-auth-security/lab" element={<D16Lab />} />
 
       {/* General Notes */}
       <Route path="/general/ide-shortcuts" element={<IdeShortcuts />} />
