@@ -1,0 +1,26 @@
+{
+  "name": "express-microservices-cinema",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Day 17 lab starter — a cinema booking system split into an API gateway + 5 Express services. See README.md.",
+  "scripts": {
+    "dev": "concurrently --names gateway,movies,seats,payments,notify,bookings --prefix-colors auto \"tsx watch src/gateway/server.ts\" \"tsx watch src/services/movies/server.ts\" \"tsx watch src/services/seats/server.ts\" \"tsx watch src/services/payments/server.ts\" \"tsx watch src/services/notifications/server.ts\" \"tsx watch src/services/bookings/server.ts\"",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.3",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.3",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^26.6.2",
+    "concurrently": "^9.1.0",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.1"
+  }
+}

@@ -1,0 +1,1519 @@
+{
+  "info": {
+    "name": "Cinema Booking — Microservices (Day 17 lab)",
+    "description": "Every request goes through the API gateway on {{baseUrl}} (http://localhost:3000), except the last folder, which calls every endpoint of every service directly on its own port.\n\n1. Run `npm run dev` so all 6 processes are up.\n2. Send **Auth → Log in as alice** first. It saves the token into the `token` variable, and every private request uses it automatically.\n3. **Bookings → Book seats** saves the new booking's id into `bookingId`.\n\nUntil you finish the exercises, the bookings requests answer 500 \"not implemented\" — that's expected.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "moviesUrl",
+      "value": "http://localhost:3001"
+    },
+    {
+      "key": "seatsUrl",
+      "value": "http://localhost:3002"
+    },
+    {
+      "key": "paymentsUrl",
+      "value": "http://localhost:3003"
+    },
+    {
+      "key": "notificationsUrl",
+      "value": "http://localhost:3004"
+    },
+    {
+      "key": "bookingsUrl",
+      "value": "http://localhost:3005"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "bookingId",
+      "value": "1"
+    },
+    {
+      "key": "holdId",
+      "value": "1"
+    },
+    {
+      "key": "paymentId",
+      "value": "1"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Log in as alice",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"alice\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Logging in takes just a name: alice, bob, or carol. Saves the token for every private request."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  pm.collectionVariables.set(\"token\", pm.response.json().token);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Log in as bob",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"bob\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Switch users: bob can't see or cancel alice's bookings."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  pm.collectionVariables.set(\"token\", pm.response.json().token);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Log in as unknown user (401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"mallory\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Showtimes & seats (public)",
+      "item": [
+        {
+          "name": "Health — every service up/down",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "List showtimes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/showtimes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "showtimes"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Get showtime 1",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/showtimes/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "showtimes",
+                "1"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Get showtime that doesn't exist (404)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/showtimes/999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "showtimes",
+                "999"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Seat map for showtime 1",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/seats/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "seats",
+                "1"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Rows A–E, seats 1–8. C4 and C5 are sold in the seed data."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bookings",
+      "item": [
+        {
+          "name": "Book seats",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bookings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bookings"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"showtimeId\": 1,\n  \"seats\": [\n    \"A1\",\n    \"A2\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "201 with the confirmed booking. Saves its id into `bookingId`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  pm.collectionVariables.set(\"bookingId\", pm.response.json().id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List my bookings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/bookings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bookings"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get my booking",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/bookings/{{bookingId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bookings",
+                "{{bookingId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Cancel my booking (challenge)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/bookings/{{bookingId}}/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bookings",
+                "{{bookingId}}",
+                "cancel"
+              ]
+            },
+            "description": "Refunds the payment and releases the seats. Only a confirmed booking can be cancelled."
+          }
+        },
+        {
+          "name": "My notifications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications"
+              ]
+            },
+            "description": "The confirmation emails sent for my bookings."
+          }
+        }
+      ]
+    },
+    {
+      "name": "When things go wrong",
+      "item": [
+        {
+          "name": "Seat already taken (409 from seats)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bookings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bookings"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"showtimeId\": 1,\n  \"seats\": [\n    \"C4\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Seat that doesn't exist (400 from seats)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bookings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bookings"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"showtimeId\": 1,\n  \"seats\": [\n    \"Z9\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Showtime that doesn't exist (404 from movies)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bookings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bookings"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"showtimeId\": 999,\n  \"seats\": [\n    \"A1\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Card declined (402 from payments)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bookings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bookings"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"showtimeId\": 2,\n  \"seats\": [\n    \"A1\",\n    \"A2\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "IMAX is $60 a seat: 2 seats = $120, over the $100 limit. Afterwards the seats should be free again and the booking marked payment_failed."
+          }
+        },
+        {
+          "name": "Make payments slow (5s)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/payments/debug/slow",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payments",
+                "debug",
+                "slow"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ms\": 5000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Every charge now takes 5 seconds. Book seats next: bookings gives up after 3 seconds (504) and releases the seats."
+          }
+        },
+        {
+          "name": "Book while payments is slow (504)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bookings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bookings"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"showtimeId\": 3,\n  \"seats\": [\n    \"B1\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Make payments fast again",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/payments/debug/slow",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payments",
+                "debug",
+                "slow"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ms\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Gateway security",
+      "item": [
+        {
+          "name": "Private route without a token (401)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/bookings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bookings"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Invalid token (401)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/bookings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bookings"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "not-a-real-token",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Forged x-user-id without a token (401)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-user-id",
+                "value": "1"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bookings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bookings"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "A client can't pretend to be user 1 by sending the header itself."
+          }
+        },
+        {
+          "name": "Forged x-user-id with a token (ignored)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-user-id",
+                "value": "2"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/notifications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications"
+              ]
+            },
+            "description": "Logged in as alice but claiming to be user 2: the gateway ignores the header and uses the token, so you still get alice's data."
+          }
+        },
+        {
+          "name": "Internal route through the gateway (404)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/internal/seats/holds",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "internal",
+                "seats",
+                "holds"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"showtimeId\": 1,\n  \"seats\": [\n    \"A1\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "The gateway has no route for /internal, so it's unreachable from outside."
+          }
+        },
+        {
+          "name": "Custom x-request-id (check the logs)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-request-id",
+                "value": "my-trace-123"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/showtimes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "showtimes"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Logs show the first 8 characters of each request id. Search the `npm run dev` output for `my-trace` to see this request in the movies service's log."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Direct to services (skipping the gateway)",
+      "description": "Every endpoint of every service, called on the service's own port the way another service would call it.\nThere's no gateway in between, so there's no token check: private endpoints take an `x-user-id` header you set yourself (here always 1, alice).\n\n`/internal/...` endpoints only exist here. The gateway has no route for them.",
+      "item": [
+        {
+          "name": "movies :3001",
+          "item": [
+            {
+              "name": "Health",
+              "request": {
+                "method": "GET",
+                "auth": {
+                  "type": "noauth"
+                },
+                "header": [],
+                "url": {
+                  "raw": "{{moviesUrl}}/health",
+                  "host": [
+                    "{{moviesUrl}}"
+                  ],
+                  "path": [
+                    "health"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "List showtimes",
+              "request": {
+                "method": "GET",
+                "auth": {
+                  "type": "noauth"
+                },
+                "header": [],
+                "url": {
+                  "raw": "{{moviesUrl}}/showtimes",
+                  "host": [
+                    "{{moviesUrl}}"
+                  ],
+                  "path": [
+                    "showtimes"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Get showtime 2",
+              "request": {
+                "method": "GET",
+                "auth": {
+                  "type": "noauth"
+                },
+                "header": [],
+                "url": {
+                  "raw": "{{moviesUrl}}/showtimes/2",
+                  "host": [
+                    "{{moviesUrl}}"
+                  ],
+                  "path": [
+                    "showtimes",
+                    "2"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "seats :3002",
+          "item": [
+            {
+              "name": "Health",
+              "request": {
+                "method": "GET",
+                "auth": {
+                  "type": "noauth"
+                },
+                "header": [],
+                "url": {
+                  "raw": "{{seatsUrl}}/health",
+                  "host": [
+                    "{{seatsUrl}}"
+                  ],
+                  "path": [
+                    "health"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Seat map for showtime 3",
+              "request": {
+                "method": "GET",
+                "auth": {
+                  "type": "noauth"
+                },
+                "header": [],
+                "url": {
+                  "raw": "{{seatsUrl}}/seats/3",
+                  "host": [
+                    "{{seatsUrl}}"
+                  ],
+                  "path": [
+                    "seats",
+                    "3"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Hold seats (internal)",
+              "request": {
+                "method": "POST",
+                "auth": {
+                  "type": "noauth"
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "x-user-id",
+                    "value": "1",
+                    "description": "Set by the gateway normally. Calling a service directly, you set it yourself."
+                  }
+                ],
+                "url": {
+                  "raw": "{{seatsUrl}}/internal/seats/holds",
+                  "host": [
+                    "{{seatsUrl}}"
+                  ],
+                  "path": [
+                    "internal",
+                    "seats",
+                    "holds"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"showtimeId\": 3,\n  \"seats\": [\n    \"E1\",\n    \"E2\"\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "description": "Saves the hold id for the release request below."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code === 201) {",
+                      "  pm.collectionVariables.set(\"holdId\", pm.response.json().holdId);",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Hold a taken seat (409, internal)",
+              "request": {
+                "method": "POST",
+                "auth": {
+                  "type": "noauth"
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "x-user-id",
+                    "value": "1",
+                    "description": "Set by the gateway normally. Calling a service directly, you set it yourself."
+                  }
+                ],
+                "url": {
+                  "raw": "{{seatsUrl}}/internal/seats/holds",
+                  "host": [
+                    "{{seatsUrl}}"
+                  ],
+                  "path": [
+                    "internal",
+                    "seats",
+                    "holds"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"showtimeId\": 1,\n  \"seats\": [\n    \"C4\"\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "Release that hold (internal)",
+              "request": {
+                "method": "DELETE",
+                "auth": {
+                  "type": "noauth"
+                },
+                "header": [
+                  {
+                    "key": "x-user-id",
+                    "value": "1",
+                    "description": "Set by the gateway normally. Calling a service directly, you set it yourself."
+                  }
+                ],
+                "url": {
+                  "raw": "{{seatsUrl}}/internal/seats/holds/{{holdId}}",
+                  "host": [
+                    "{{seatsUrl}}"
+                  ],
+                  "path": [
+                    "internal",
+                    "seats",
+                    "holds",
+                    "{{holdId}}"
+                  ]
+                },
+                "description": "204. Releasing the same hold again is also 204."
+              }
+            }
+          ]
+        },
+        {
+          "name": "payments :3003",
+          "item": [
+            {
+              "name": "Health",
+              "request": {
+                "method": "GET",
+                "auth": {
+                  "type": "noauth"
+                },
+                "header": [],
+                "url": {
+                  "raw": "{{paymentsUrl}}/health",
+                  "host": [
+                    "{{paymentsUrl}}"
+                  ],
+                  "path": [
+                    "health"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Charge $30 (internal)",
+              "request": {
+                "method": "POST",
+                "auth": {
+                  "type": "noauth"
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "x-user-id",
+                    "value": "1",
+                    "description": "Set by the gateway normally. Calling a service directly, you set it yourself."
+                  }
+                ],
+                "url": {
+                  "raw": "{{paymentsUrl}}/internal/payments/charges",
+                  "host": [
+                    "{{paymentsUrl}}"
+                  ],
+                  "path": [
+                    "internal",
+                    "payments",
+                    "charges"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"bookingId\": 1,\n  \"userId\": 1,\n  \"amount\": 30\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "description": "Saves the payment id for the refund request below."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code === 201) {",
+                      "  pm.collectionVariables.set(\"paymentId\", pm.response.json().id);",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Charge $120, declined (402, internal)",
+              "request": {
+                "method": "POST",
+                "auth": {
+                  "type": "noauth"
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "x-user-id",
+                    "value": "1",
+                    "description": "Set by the gateway normally. Calling a service directly, you set it yourself."
+                  }
+                ],
+                "url": {
+                  "raw": "{{paymentsUrl}}/internal/payments/charges",
+                  "host": [
+                    "{{paymentsUrl}}"
+                  ],
+                  "path": [
+                    "internal",
+                    "payments",
+                    "charges"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"bookingId\": 1,\n  \"userId\": 1,\n  \"amount\": 120\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "Refund that charge (internal)",
+              "request": {
+                "method": "POST",
+                "auth": {
+                  "type": "noauth"
+                },
+                "header": [
+                  {
+                    "key": "x-user-id",
+                    "value": "1",
+                    "description": "Set by the gateway normally. Calling a service directly, you set it yourself."
+                  }
+                ],
+                "url": {
+                  "raw": "{{paymentsUrl}}/internal/payments/{{paymentId}}/refund",
+                  "host": [
+                    "{{paymentsUrl}}"
+                  ],
+                  "path": [
+                    "internal",
+                    "payments",
+                    "{{paymentId}}",
+                    "refund"
+                  ]
+                },
+                "description": "200. Refunding it a second time is 409."
+              }
+            },
+            {
+              "name": "Make every charge slow",
+              "request": {
+                "method": "POST",
+                "auth": {
+                  "type": "noauth"
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{paymentsUrl}}/payments/debug/slow",
+                  "host": [
+                    "{{paymentsUrl}}"
+                  ],
+                  "path": [
+                    "payments",
+                    "debug",
+                    "slow"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"ms\": 5000\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "Make charges fast again",
+              "request": {
+                "method": "POST",
+                "auth": {
+                  "type": "noauth"
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{paymentsUrl}}/payments/debug/slow",
+                  "host": [
+                    "{{paymentsUrl}}"
+                  ],
+                  "path": [
+                    "payments",
+                    "debug",
+                    "slow"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"ms\": 0\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "notifications :3004",
+          "item": [
+            {
+              "name": "Health",
+              "request": {
+                "method": "GET",
+                "auth": {
+                  "type": "noauth"
+                },
+                "header": [],
+                "url": {
+                  "raw": "{{notificationsUrl}}/health",
+                  "host": [
+                    "{{notificationsUrl}}"
+                  ],
+                  "path": [
+                    "health"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Send an email (internal)",
+              "request": {
+                "method": "POST",
+                "auth": {
+                  "type": "noauth"
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "x-user-id",
+                    "value": "1",
+                    "description": "Set by the gateway normally. Calling a service directly, you set it yourself."
+                  }
+                ],
+                "url": {
+                  "raw": "{{notificationsUrl}}/internal/notifications/emails",
+                  "host": [
+                    "{{notificationsUrl}}"
+                  ],
+                  "path": [
+                    "internal",
+                    "notifications",
+                    "emails"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userId\": 1,\n  \"subject\": \"Hello from Postman\",\n  \"body\": \"Sent directly to the notifications service.\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "Emails sent to user 1",
+              "request": {
+                "method": "GET",
+                "auth": {
+                  "type": "noauth"
+                },
+                "header": [
+                  {
+                    "key": "x-user-id",
+                    "value": "1",
+                    "description": "Set by the gateway normally. Calling a service directly, you set it yourself."
+                  }
+                ],
+                "url": {
+                  "raw": "{{notificationsUrl}}/notifications",
+                  "host": [
+                    "{{notificationsUrl}}"
+                  ],
+                  "path": [
+                    "notifications"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "bookings :3005",
+          "item": [
+            {
+              "name": "Health",
+              "request": {
+                "method": "GET",
+                "auth": {
+                  "type": "noauth"
+                },
+                "header": [],
+                "url": {
+                  "raw": "{{bookingsUrl}}/health",
+                  "host": [
+                    "{{bookingsUrl}}"
+                  ],
+                  "path": [
+                    "health"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Book seats",
+              "request": {
+                "method": "POST",
+                "auth": {
+                  "type": "noauth"
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "x-user-id",
+                    "value": "1",
+                    "description": "Set by the gateway normally. Calling a service directly, you set it yourself."
+                  }
+                ],
+                "url": {
+                  "raw": "{{bookingsUrl}}/bookings",
+                  "host": [
+                    "{{bookingsUrl}}"
+                  ],
+                  "path": [
+                    "bookings"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"showtimeId\": 3,\n  \"seats\": [\n    \"D7\",\n    \"D8\"\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "description": "The same as booking through the gateway, minus the token check. Bookings still calls movies, seats, payments, and notifications itself."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code === 201) {",
+                      "  pm.collectionVariables.set(\"bookingId\", pm.response.json().id);",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "List bookings for user 1",
+              "request": {
+                "method": "GET",
+                "auth": {
+                  "type": "noauth"
+                },
+                "header": [
+                  {
+                    "key": "x-user-id",
+                    "value": "1",
+                    "description": "Set by the gateway normally. Calling a service directly, you set it yourself."
+                  }
+                ],
+                "url": {
+                  "raw": "{{bookingsUrl}}/bookings",
+                  "host": [
+                    "{{bookingsUrl}}"
+                  ],
+                  "path": [
+                    "bookings"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Get that booking",
+              "request": {
+                "method": "GET",
+                "auth": {
+                  "type": "noauth"
+                },
+                "header": [
+                  {
+                    "key": "x-user-id",
+                    "value": "1",
+                    "description": "Set by the gateway normally. Calling a service directly, you set it yourself."
+                  }
+                ],
+                "url": {
+                  "raw": "{{bookingsUrl}}/bookings/{{bookingId}}",
+                  "host": [
+                    "{{bookingsUrl}}"
+                  ],
+                  "path": [
+                    "bookings",
+                    "{{bookingId}}"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Cancel that booking (challenge)",
+              "request": {
+                "method": "POST",
+                "auth": {
+                  "type": "noauth"
+                },
+                "header": [
+                  {
+                    "key": "x-user-id",
+                    "value": "1",
+                    "description": "Set by the gateway normally. Calling a service directly, you set it yourself."
+                  }
+                ],
+                "url": {
+                  "raw": "{{bookingsUrl}}/bookings/{{bookingId}}/cancel",
+                  "host": [
+                    "{{bookingsUrl}}"
+                  ],
+                  "path": [
+                    "bookings",
+                    "{{bookingId}}",
+                    "cancel"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Call without x-user-id (401)",
+              "request": {
+                "method": "GET",
+                "auth": {
+                  "type": "noauth"
+                },
+                "header": [],
+                "url": {
+                  "raw": "{{bookingsUrl}}/bookings",
+                  "host": [
+                    "{{bookingsUrl}}"
+                  ],
+                  "path": [
+                    "bookings"
+                  ]
+                },
+                "description": "What happens if anything but the gateway forgets to say who's asking."
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
