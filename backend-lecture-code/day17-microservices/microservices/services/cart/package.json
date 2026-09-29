@@ -1,0 +1,22 @@
+{
+  "name": "cart-service",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cart service (Redis)",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "tsx src/server.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "dotenv": "^18.0.4",
+    "express": "^5.1.0",
+    "redis": "^6.2.1"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.3",
+    "@types/node": "^20.17.6",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}

@@ -1,0 +1,510 @@
+openapi: 3.0.3
+info:
+  title: Day 17 Store — Monolith
+  version: 1.0.0
+  description: |
+    One Express process, eight modules, one Postgres database.
+
+    **Log in first:** call `POST /users/login` with `{"email": "alice@shop.com"}`, copy the
+    `token`, then click **Authorize** and paste it.
+
+    Seed data to know: the 85" TV (`SKU-2001`, $5,999) is over the $5,000 limit, so paying for
+    it is always declined. The Coffee Mug (`SKU-3001`) has only 1 in stock.
+servers:
+  - url: http://localhost:4100
+    description: The monolith
+
+tags:
+  - name: users
+  - name: catalog
+  - name: inventory
+  - name: cart
+  - name: orders
+    description: Checkout calls five other modules as plain functions, in one database transaction.
+  - name: payments
+  - name: notifications
+  - name: recommendations
+  - name: demo
+    description: Endpoints that exist only to demonstrate a monolith's pain points.
+  - name: health
+
+paths:
+  /health:
+    get:
+      tags: [health]
+      summary: Is the process up and the database reachable?
+      security: [] # public, no token needed
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Status" }
+
+  /users:
+    post:
+      tags: [users]
+      summary: Sign up
+      security: [] # public, no token needed
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NewUser" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "409": { $ref: "#/components/responses/Conflict" }
+
+  /users/login:
+    post:
+      tags: [users]
+      summary: Log in (demo — email only, no password)
+      security: [] # public, no token needed
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LoginRequest" }
+      responses:
+        "200":
+          description: A JWT, valid for one hour
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LoginResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /users/me:
+    get:
+      tags: [users]
+      summary: The logged-in user
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /products:
+    get:
+      tags: [catalog]
+      summary: List products
+      security: [] # public, no token needed
+      parameters:
+        - name: category
+          in: query
+          required: false
+          schema: { type: string, example: electronics }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Product" }
+    post:
+      tags: [catalog]
+      summary: Add a product
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Product" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Product" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "409": { $ref: "#/components/responses/Conflict" }
+
+  /products/{sku}:
+    get:
+      tags: [catalog]
+      summary: One product
+      security: [] # public, no token needed
+      parameters: [{ $ref: "#/components/parameters/Sku" }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Product" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /inventory:
+    get:
+      tags: [inventory]
+      summary: Stock for every SKU
+      security: [] # public, no token needed
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Stock" }
+
+  /inventory/{sku}:
+    get:
+      tags: [inventory]
+      summary: Stock for one SKU
+      security: [] # public, no token needed
+      parameters: [{ $ref: "#/components/parameters/Sku" }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Stock" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /cart:
+    get:
+      tags: [cart]
+      summary: My cart
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Cart" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    delete:
+      tags: [cart]
+      summary: Empty my cart
+      security: [{ bearerAuth: [] }]
+      responses:
+        "204": { description: Emptied }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /cart/items:
+    post:
+      tags: [cart]
+      summary: Add to my cart (adds to the quantity if already there)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CartItemInput" }
+      responses:
+        "201":
+          description: The whole cart after the change
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Cart" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /cart/items/{sku}:
+    delete:
+      tags: [cart]
+      summary: Remove one SKU from my cart
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/Sku" }]
+      responses:
+        "200":
+          description: The whole cart after the change
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Cart" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /orders:
+    post:
+      tags: [orders]
+      summary: Check out my cart
+      description: |
+        Reads the cart, prices each item, reserves stock, creates the order, charges the card,
+        and empties the cart, all inside one `BEGIN … COMMIT`. If any step fails, `ROLLBACK`
+        undoes every earlier one. The confirmation email is sent after `COMMIT`.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201":
+          description: Order placed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Order" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "402": { $ref: "#/components/responses/PaymentDeclined" }
+        "409": { $ref: "#/components/responses/Conflict" }
+    get:
+      tags: [orders]
+      summary: My orders
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Order" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /orders/{id}:
+    get:
+      tags: [orders]
+      summary: One of my orders, with items and customer
+      description: One SQL query that JOINs the orders, users, order_items, and products tables.
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OrderDetail" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /payments/{id}:
+    get:
+      tags: [payments]
+      summary: One of my payments
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Payment" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /notifications:
+    get:
+      tags: [notifications]
+      summary: Notifications sent to me
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Notification" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /recommendations:
+    get:
+      tags: [recommendations, demo]
+      summary: Three recommended products (slow on purpose)
+      security: [] # public, no token needed
+      description: |
+        Burns CPU synchronously for `ms` milliseconds before answering. Node runs your code on
+        one thread, so **every other request to the monolith waits** until this finishes. Call it,
+        then call `GET /products` while it's running.
+      parameters:
+        - name: ms
+          in: query
+          required: false
+          schema: { type: integer, default: 5000, maximum: 30000 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Recommendations" }
+
+  /notifications/debug/crash:
+    post:
+      tags: [demo]
+      summary: Crash the notifications module (takes down the whole server)
+      security: [] # public, no token needed
+      description: |
+        Throws an unhandled error 100ms after responding. It kills the one process that runs
+        every module, so every endpoint stops answering until you restart.
+      responses:
+        "200":
+          description: The crash is scheduled
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Message" }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    Sku:
+      name: sku
+      in: path
+      required: true
+      schema: { type: string, example: SKU-1001 }
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer, example: 1 }
+
+  responses:
+    BadRequest:
+      description: Invalid input
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Unauthorized:
+      description: Missing, invalid, or expired token (or unknown email on login)
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Conflict:
+      description: Already exists, or not enough stock
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    PaymentDeclined:
+      description: The card was declined (any total over $5,000). Nothing was saved.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error: { type: string, example: "not enough stock for SKU-3001" }
+    Status:
+      type: object
+      properties:
+        status: { type: string, example: ok }
+    Message:
+      type: object
+      properties:
+        message: { type: string }
+
+    User:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        email: { type: string, example: alice@shop.com }
+        name: { type: string, example: Alice }
+    NewUser:
+      type: object
+      required: [email, name]
+      properties:
+        email: { type: string, example: dave@shop.com }
+        name: { type: string, example: Dave }
+    LoginRequest:
+      type: object
+      required: [email]
+      properties:
+        email: { type: string, example: alice@shop.com }
+    LoginResponse:
+      type: object
+      properties:
+        token: { type: string }
+        user: { $ref: "#/components/schemas/User" }
+
+    Product:
+      type: object
+      required: [sku, name, price, category]
+      properties:
+        sku: { type: string, example: SKU-1001 }
+        name: { type: string, example: Running Shoes }
+        price: { type: number, example: 89.99 }
+        category: { type: string, example: footwear }
+    Stock:
+      type: object
+      properties:
+        sku: { type: string, example: SKU-1001 }
+        onHand: { type: integer, example: 25 }
+
+    CartItemInput:
+      type: object
+      required: [sku]
+      properties:
+        sku: { type: string, example: SKU-1001 }
+        quantity: { type: integer, minimum: 1, default: 1, example: 2 }
+    Cart:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              sku: { type: string, example: SKU-1001 }
+              quantity: { type: integer, example: 2 }
+
+    Order:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        userId: { type: integer, example: 1 }
+        status: { type: string, example: placed }
+        total: { type: number, example: 194.48 }
+        createdAt: { type: string, format: date-time }
+    OrderDetail:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        status: { type: string, example: placed }
+        total: { type: number, example: 194.48 }
+        createdAt: { type: string, format: date-time }
+        customerEmail: { type: string, example: alice@shop.com }
+        customerName: { type: string, example: Alice }
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              sku: { type: string, example: SKU-1001 }
+              name: { type: string, example: Running Shoes }
+              quantity: { type: integer, example: 2 }
+              unitPrice: { type: number, example: 89.99 }
+
+    Payment:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        orderId: { type: integer, example: 1 }
+        amount: { type: number, example: 194.48 }
+        status: { type: string, example: approved }
+
+    Notification:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        type: { type: string, example: order_confirmation }
+        message: { type: string, example: "Order #1 confirmed, total $194.48" }
+        createdAt: { type: string, format: date-time }
+
+    Recommendations:
+      type: object
+      properties:
+        tookMs: { type: integer, example: 5000 }
+        recommendations:
+          type: array
+          items:
+            type: object
+            properties:
+              sku: { type: string }
+              name: { type: string }
+              price: { type: number }

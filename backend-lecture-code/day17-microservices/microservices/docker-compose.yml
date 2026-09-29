@@ -1,0 +1,61 @@
+# Infrastructure only: one container per database ENGINE, plus the one
+# non-Node service. The Node services run as plain processes (npm run dev:all),
+# the way you'd iterate on them locally.
+name: day17-microservices
+
+services:
+  postgres: # users, inventory, orders, payments: 4 databases, 4 logins
+    image: postgres:16-alpine
+    container_name: day17-ms-postgres
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+    ports:
+      - "5435:5432"
+    volumes:
+      - ./infra/postgres-init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  mongo: # catalog: every product has different attributes
+    image: mongo:7
+    container_name: day17-ms-mongo
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongodata:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis: # cart: short-lived data you can afford to lose
+    image: redis:7-alpine
+    container_name: day17-ms-redis
+    ports:
+      - "6381:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  recommendations: # Python, in a container so nobody needs Python installed
+    build: ./services/recommendations
+    container_name: day17-ms-recommendations
+    ports:
+      - "4108:4108"
+    environment:
+      # Catalog runs on your machine, not in Docker, so reach it through the host.
+      CATALOG_URL: http://host.docker.internal:4102
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  pgdata:
+  mongodata:

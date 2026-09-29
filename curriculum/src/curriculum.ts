@@ -53,6 +53,9 @@ export type Week = {
 
 const ALL: PageKind[] = ["lecture", "notes", "practice", "concepts", "lab"];
 
+/** Weeks 4–7: lecture canvas, notes, and concepts — practice and lab still to come. */
+const NO_PRACTICE_LAB: PageKind[] = ["lecture", "notes", "concepts"];
+
 export const WEEKS: Week[] = [
   {
     slug: "week1",
@@ -208,6 +211,7 @@ export const WEEKS: Week[] = [
         title: "Day 16 - Authentication & Security",
         pages: ["lecture", "notes", "concepts", "lab"],
       },
+      { slug: "day17-microservices", title: "Day 17 - Microservices", pages: NO_PRACTICE_LAB },
     ],
   },
 ];

@@ -1,0 +1,39 @@
+# How the Orders team runs ITS service on its own: the service plus its own
+# database, nothing else. Every other service is reached by URL. Here that's
+# the copies running on your machine; in a company it's usually a shared dev
+# environment.
+#
+# Not used by `npm run dev:all`. To try it, stop the npm-run orders first
+# (both want port 4105), then:  docker compose up --build
+name: orders-team
+
+services:
+  orders:
+    build: .
+    ports:
+      - "4105:4105"
+    environment:
+      DATABASE_URL: postgresql://orders_svc:orders_svc@orders-db:5432/orders_db
+      USERS_URL: http://host.docker.internal:4101
+      CATALOG_URL: http://host.docker.internal:4102
+      INVENTORY_URL: http://host.docker.internal:4103
+      CART_URL: http://host.docker.internal:4104
+      PAYMENTS_URL: http://host.docker.internal:4106
+      NOTIFICATIONS_URL: http://host.docker.internal:4107
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      orders-db:
+        condition: service_healthy
+
+  orders-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: orders_svc
+      POSTGRES_PASSWORD: orders_svc
+      POSTGRES_DB: orders_db
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U orders_svc -d orders_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5

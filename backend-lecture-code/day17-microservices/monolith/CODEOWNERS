@@ -1,0 +1,18 @@
+# Eight teams, one repository.
+
+/src/modules/users/            @shop/identity-team
+/src/modules/catalog/          @shop/catalog-team
+/src/modules/inventory/        @shop/inventory-team
+/src/modules/cart/             @shop/cart-team
+/src/modules/orders/           @shop/checkout-team
+/src/modules/payments/         @shop/payments-team
+/src/modules/notifications/    @shop/messaging-team
+/src/modules/recommendations/  @shop/data-science-team
+
+# Nobody owns these, and every team has to edit them.
+# This is where the merge conflicts happen.
+/src/server.ts
+/src/db.ts
+/src/shared/
+/schema.sql
+/package.json

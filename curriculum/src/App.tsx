@@ -103,6 +103,11 @@ import D16Notes from "./week4/day16-auth-security/Notes";
 import D16Concepts from "./week4/day16-auth-security/Concepts";
 import D16Lab from "./week4/day16-auth-security/Lab";
 
+import D17Lecture from "./week4/day17-microservices/lecture/Lecture";
+import D17Notes from "./week4/day17-microservices/Notes";
+import D17Concepts from "./week4/day17-microservices/Concepts";
+import D17Lab from "./week4/day17-microservices/Lab";
+
 function App() {
   return (
     <Routes>
@@ -388,6 +393,17 @@ function App() {
         element={<D16Concepts />}
       />
       <Route path="/week4/day16-auth-security/lab" element={<D16Lab />} />
+
+      <Route
+        path="/week4/day17-microservices/lecture"
+        element={<D17Lecture />}
+      />
+      <Route path="/week4/day17-microservices/notes" element={<D17Notes />} />
+      <Route
+        path="/week4/day17-microservices/concepts"
+        element={<D17Concepts />}
+      />
+      <Route path="/week4/day17-microservices/lab" element={<D17Lab />} />
 
       {/* General Notes */}
       <Route path="/general/ide-shortcuts" element={<IdeShortcuts />} />

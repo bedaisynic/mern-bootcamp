@@ -1,0 +1,26 @@
+{
+  "name": "day17-microservices",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Day 17 lecture: the same store as ../monolith, split into a gateway + 8 services",
+  "workspaces": [
+    "gateway",
+    "services/users",
+    "services/catalog",
+    "services/inventory",
+    "services/cart",
+    "services/orders",
+    "services/payments",
+    "services/notifications"
+  ],
+  "scripts": {
+    "infra:up": "docker compose up -d --build --wait",
+    "infra:down": "docker compose down",
+    "infra:reset": "docker compose down -v && docker compose up -d --build --wait",
+    "dev:all": "concurrently --names gateway,users,catalog,inventory,cart,orders,payments,notify --prefix-colors auto \"npm run dev -w gateway\" \"npm run dev -w services/users\" \"npm run dev -w services/catalog\" \"npm run dev -w services/inventory\" \"npm run dev -w services/cart\" \"npm run dev -w services/orders\" \"npm run dev -w services/payments\" \"npm run dev -w services/notifications\"",
+    "typecheck": "npm run typecheck --workspaces"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}

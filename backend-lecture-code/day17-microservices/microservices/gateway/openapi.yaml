@@ -1,0 +1,751 @@
+openapi: 3.0.3
+info:
+  title: Day 17 Store — Microservices (via the API Gateway)
+  version: 1.0.0
+  description: |
+    The same store as the monolith, split into eight services behind one gateway. The public
+    paths are identical to the monolith's; only the port changed (4100 → 8080).
+
+    **Log in first:** call `POST /users/login` with `{"email": "alice@shop.com"}`, copy the
+    `token`, then click **Authorize** and paste it. The gateway checks the token once and passes
+    the caller's id to the service in an `x-user-id` header. Services never see the token.
+
+    Any routed request can also fail at the gateway itself: **502** when the service is down,
+    **504** when it takes longer than 10 seconds.
+
+    The **internal** section at the bottom lists service-to-service endpoints. The gateway has no
+    route for them; they're documented with each service's own address for reference.
+
+    Seed data to know: the 85" TV (`SKU-2001`, $5,999) is over the $5,000 limit, so paying for
+    it is always declined. The Coffee Mug (`SKU-3001`) has only 1 in stock.
+servers:
+  - url: http://localhost:8080
+    description: API gateway
+
+tags:
+  - name: gateway
+  - name: users
+    description: users service · Node · Postgres `users_db` · :4101
+  - name: catalog
+    description: catalog service · Node · MongoDB · :4102
+  - name: inventory
+    description: inventory service · Node · Postgres `inventory_db` · :4103
+  - name: cart
+    description: cart service · Node · Redis · :4104
+  - name: orders
+    description: orders service · Node · Postgres `orders_db` · :4105. Orchestrates checkout.
+  - name: payments
+    description: payments service · Node · Postgres `payments_db` · :4106
+  - name: notifications
+    description: notifications service · Node · in memory · :4107
+  - name: recommendations
+    description: recommendations service · **Python / FastAPI** · :4108
+  - name: demo
+    description: Endpoints that exist only to demonstrate how microservices contain failures.
+  - name: internal
+    description: |
+      Service-to-service only. **Not routed by the gateway**: calling these on :8080 returns 404.
+      Each operation lists the service's own address. Reference only: "Try it out" won't work
+      from this page, because the browser blocks calls to another port. Use curl instead.
+
+paths:
+  /health:
+    get:
+      tags: [gateway]
+      summary: Up/down status of every service instance
+      security: [] # public, no token needed
+      description: Kill any one service and only its entry changes to `down`.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GatewayHealth" }
+
+  /users:
+    post:
+      tags: [users]
+      summary: Sign up
+      security: [] # public, no token needed
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NewUser" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "502": { $ref: "#/components/responses/ServiceDown" }
+
+  /users/login:
+    post:
+      tags: [users]
+      summary: Log in (demo — email only, no password)
+      security: [] # public, no token needed
+      description: The users service signs the JWT; the gateway verifies it on later requests.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LoginRequest" }
+      responses:
+        "200":
+          description: A JWT, valid for one hour
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LoginResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "502": { $ref: "#/components/responses/ServiceDown" }
+
+  /users/me:
+    get:
+      tags: [users]
+      summary: The logged-in user
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "502": { $ref: "#/components/responses/ServiceDown" }
+
+  /products:
+    get:
+      tags: [catalog]
+      summary: List products
+      security: [] # public, no token needed
+      description: |
+        Round-robins across every catalog instance in `CATALOG_URLS`. Start a second instance
+        and watch the gateway log alternate between them.
+      parameters:
+        - name: category
+          in: query
+          required: false
+          schema: { type: string, example: electronics }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Product" }
+        "502": { $ref: "#/components/responses/ServiceDown" }
+    post:
+      tags: [catalog]
+      summary: Add a product
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Product" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Product" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "502": { $ref: "#/components/responses/ServiceDown" }
+
+  /products/{sku}:
+    get:
+      tags: [catalog]
+      summary: One product
+      security: [] # public, no token needed
+      parameters: [{ $ref: "#/components/parameters/Sku" }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Product" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "502": { $ref: "#/components/responses/ServiceDown" }
+
+  /inventory:
+    get:
+      tags: [inventory]
+      summary: Stock for every SKU
+      security: [] # public, no token needed
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Stock" }
+        "502": { $ref: "#/components/responses/ServiceDown" }
+
+  /inventory/{sku}:
+    get:
+      tags: [inventory]
+      summary: Stock for one SKU
+      security: [] # public, no token needed
+      parameters: [{ $ref: "#/components/parameters/Sku" }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Stock" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "502": { $ref: "#/components/responses/ServiceDown" }
+
+  /cart:
+    get:
+      tags: [cart]
+      summary: My cart
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Cart" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "502": { $ref: "#/components/responses/ServiceDown" }
+    delete:
+      tags: [cart]
+      summary: Empty my cart
+      security: [{ bearerAuth: [] }]
+      responses:
+        "204": { description: Emptied }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "502": { $ref: "#/components/responses/ServiceDown" }
+
+  /cart/items:
+    post:
+      tags: [cart]
+      summary: Add to my cart (adds to the quantity if already there)
+      description: The cart service calls the catalog service to check the SKU exists.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CartItemInput" }
+      responses:
+        "201":
+          description: The whole cart after the change
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Cart" }
+        "400":
+          description: Invalid input, or an unknown SKU
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "502": { $ref: "#/components/responses/ServiceDown" }
+        "503":
+          description: The catalog service couldn't be reached to check the SKU
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /cart/items/{sku}:
+    delete:
+      tags: [cart]
+      summary: Remove one SKU from my cart
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/Sku" }]
+      responses:
+        "200":
+          description: The whole cart after the change
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Cart" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "502": { $ref: "#/components/responses/ServiceDown" }
+
+  /orders:
+    post:
+      tags: [orders]
+      summary: Check out my cart
+      description: |
+        The orders service calls five other services, in order:
+
+        1. **cart** and **users** (in parallel): the items and the customer's email
+        2. **catalog**: current prices, copied into the order as a snapshot
+        3. **inventory**: reserve stock (committed on inventory's side immediately)
+        4. saves the order in its own database as `pending_payment`
+        5. **payments**: charge the card. If this fails or times out (3s), orders **releases the
+           reservation itself** and marks the order `payment_failed`
+        6. **cart**: empty it (best effort)
+        7. **notifications**: fire-and-forget. If it's down, the order still succeeds.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201":
+          description: Order placed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Order" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "402":
+          description: Card declined (any total over $5,000). The stock was released and the order is saved as `payment_failed`.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UpstreamError" }
+        "409":
+          description: Not enough stock
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UpstreamError" }
+        "502": { $ref: "#/components/responses/ServiceDown" }
+        "503":
+          description: A service that checkout depends on is unreachable
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UpstreamError" }
+        "504":
+          description: A service that checkout depends on timed out (e.g. payments after 3s)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UpstreamError" }
+    get:
+      tags: [orders]
+      summary: My orders
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Order" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "502": { $ref: "#/components/responses/ServiceDown" }
+
+  /orders/{id}:
+    get:
+      tags: [orders]
+      summary: One of my orders
+      description: No JOIN. Everything here was copied into the order at checkout time.
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Order" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "502": { $ref: "#/components/responses/ServiceDown" }
+
+  /payments/{id}:
+    get:
+      tags: [payments]
+      summary: One of my payments
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Payment" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "502": { $ref: "#/components/responses/ServiceDown" }
+
+  /notifications:
+    get:
+      tags: [notifications]
+      summary: Emails sent to me
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Email" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "502": { $ref: "#/components/responses/ServiceDown" }
+
+  /recommendations:
+    get:
+      tags: [recommendations, demo]
+      summary: Three recommended products (slow on purpose, in Python)
+      security: [] # public, no token needed
+      description: |
+        Burns CPU for `ms` milliseconds, the same as the monolith's version. This time it runs in
+        its own process, so `GET /products` keeps answering instantly while this is busy.
+      parameters:
+        - name: ms
+          in: query
+          required: false
+          schema: { type: integer, default: 5000, maximum: 30000 }
+      responses:
+        "200":
+          description: OK. If catalog is down, `recommendations` is empty and `note` explains why.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Recommendations" }
+        "502": { $ref: "#/components/responses/ServiceDown" }
+
+  /notifications/debug/crash:
+    post:
+      tags: [demo]
+      summary: Crash the notifications service (and only it)
+      security: [] # public, no token needed
+      description: |
+        The same bug as the monolith's. It kills the notifications process only: `GET /health`
+        shows just that one service down, and checkout still returns 201.
+      responses:
+        "200":
+          description: The crash is scheduled
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Message" }
+        "502": { $ref: "#/components/responses/ServiceDown" }
+
+  /payments/debug/slow:
+    post:
+      tags: [demo]
+      summary: Make every card charge take this long
+      security: [] # public, no token needed
+      description: |
+        Set `ms` above 3000 and checkout fails with **504** (orders stops waiting after 3
+        seconds) and releases the stock. Set it back to `0` afterwards.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ms: { type: integer, example: 5000 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  slowMs: { type: integer, example: 5000 }
+        "502": { $ref: "#/components/responses/ServiceDown" }
+
+  # ---- Internal: service to service, not routed by the gateway ----
+
+  /internal/users/{id}:
+    get:
+      tags: [internal]
+      summary: Look up any user by id (called by orders)
+      security: [] # public, no token needed
+      servers: [{ url: http://localhost:4101, description: users service }]
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /internal/inventory/reservations:
+    post:
+      tags: [internal]
+      summary: Reserve every item or none (called by orders)
+      security: [] # public, no token needed
+      servers: [{ url: http://localhost:4103, description: inventory service }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items]
+              properties:
+                items:
+                  type: array
+                  items: { $ref: "#/components/schemas/CartItemInput" }
+      responses:
+        "201":
+          description: Reserved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reservationId: { type: integer, example: 1 }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "409": { $ref: "#/components/responses/Conflict" }
+
+  /internal/inventory/reservations/{id}:
+    delete:
+      tags: [internal]
+      summary: Release a reservation (the compensating action)
+      security: [] # public, no token needed
+      description: Puts the stock back. Releasing the same reservation twice does nothing.
+      servers: [{ url: http://localhost:4103, description: inventory service }]
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "204": { description: Released }
+
+  /internal/payments/charges:
+    post:
+      tags: [internal]
+      summary: Charge a card (called by orders)
+      security: [] # public, no token needed
+      servers: [{ url: http://localhost:4106, description: payments service }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [orderId, userId, amount]
+              properties:
+                orderId: { type: integer, example: 1 }
+                userId: { type: integer, example: 1 }
+                amount: { type: number, example: 194.48 }
+      responses:
+        "201":
+          description: Approved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Payment" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "402":
+          description: Declined (over $5,000). The declined payment is still recorded.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error: { type: string }
+                  payment: { $ref: "#/components/schemas/Payment" }
+
+  /internal/notifications/emails:
+    post:
+      tags: [internal]
+      summary: Send an email (called by orders, fire-and-forget)
+      security: [] # public, no token needed
+      servers: [{ url: http://localhost:4107, description: notifications service }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId, to, subject]
+              properties:
+                userId: { type: integer, example: 1 }
+                to: { type: string, example: alice@shop.com }
+                subject: { type: string, example: "Order #1 confirmed" }
+                body: { type: string, example: "Total $194.48" }
+      responses:
+        "201":
+          description: Sent
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Email" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    Sku:
+      name: sku
+      in: path
+      required: true
+      schema: { type: string, example: SKU-1001 }
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer, example: 1 }
+
+  responses:
+    BadRequest:
+      description: Invalid input
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Unauthorized:
+      description: Missing, invalid, or expired token (checked at the gateway), or unknown email on login
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Conflict:
+      description: Already exists, or not enough stock
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    ServiceDown:
+      description: The service behind this route is unreachable (from the gateway itself)
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/UpstreamError" }
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error: { type: string, example: "unknown sku NOPE" }
+    UpstreamError:
+      type: object
+      properties:
+        error: { type: string, example: "payments timed out after 3000ms" }
+        service: { type: string, example: payments }
+    Message:
+      type: object
+      properties:
+        message: { type: string }
+    GatewayHealth:
+      type: object
+      properties:
+        gateway: { type: string, example: up }
+        services:
+          type: object
+          additionalProperties: { type: string }
+          example:
+            "users http://localhost:4101": up
+            "catalog http://localhost:4102": up
+            "notifications http://localhost:4107": down
+
+    User:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        email: { type: string, example: alice@shop.com }
+        name: { type: string, example: Alice }
+    NewUser:
+      type: object
+      required: [email, name]
+      properties:
+        email: { type: string, example: dave@shop.com }
+        name: { type: string, example: Dave }
+    LoginRequest:
+      type: object
+      required: [email]
+      properties:
+        email: { type: string, example: alice@shop.com }
+    LoginResponse:
+      type: object
+      properties:
+        token: { type: string }
+        user: { $ref: "#/components/schemas/User" }
+
+    Product:
+      type: object
+      required: [sku, name, price, category]
+      properties:
+        sku: { type: string, example: SKU-2001 }
+        name: { type: string, example: 85" 8K TV }
+        price: { type: number, example: 5999 }
+        category: { type: string, example: electronics }
+        attributes:
+          type: object
+          description: Different for every kind of product (stored in MongoDB, so no fixed schema).
+          additionalProperties: true
+          example: { resolution: 8K, screenInches: 85 }
+    Stock:
+      type: object
+      properties:
+        sku: { type: string, example: SKU-1001 }
+        onHand: { type: integer, example: 25 }
+
+    CartItemInput:
+      type: object
+      required: [sku]
+      properties:
+        sku: { type: string, example: SKU-1001 }
+        quantity: { type: integer, minimum: 1, default: 1, example: 2 }
+    Cart:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              sku: { type: string, example: SKU-1001 }
+              quantity: { type: integer, example: 2 }
+
+    Order:
+      type: object
+      description: Includes a snapshot of the customer and items as they were at checkout.
+      properties:
+        id: { type: integer, example: 1 }
+        userId: { type: integer, example: 1 }
+        status:
+          type: string
+          enum: [pending_payment, placed, payment_failed]
+          example: placed
+        total: { type: number, example: 194.48 }
+        customerEmail: { type: string, example: alice@shop.com }
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              sku: { type: string, example: SKU-1001 }
+              name: { type: string, example: Running Shoes }
+              quantity: { type: integer, example: 2 }
+              unitPrice: { type: number, example: 89.99 }
+        reservationId: { type: integer, example: 1 }
+        paymentId: { type: integer, nullable: true, example: 1 }
+        createdAt: { type: string, format: date-time }
+
+    Payment:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        orderId: { type: integer, example: 1 }
+        userId: { type: integer, example: 1 }
+        amount: { type: number, example: 194.48 }
+        status: { type: string, enum: [approved, declined], example: approved }
+
+    Email:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        userId: { type: integer, example: 1 }
+        to: { type: string, example: alice@shop.com }
+        subject: { type: string, example: "Order #1 confirmed" }
+        body: { type: string, example: "Total $194.48" }
+        sentAt: { type: string, format: date-time }
+
+    Recommendations:
+      type: object
+      properties:
+        tookMs: { type: integer, example: 5000 }
+        servedBy: { type: string, example: recommendations (Python / FastAPI) }
+        note: { type: string, example: catalog unreachable }
+        recommendations:
+          type: array
+          items:
+            type: object
+            properties:
+              sku: { type: string }
+              name: { type: string }
+              price: { type: number }
