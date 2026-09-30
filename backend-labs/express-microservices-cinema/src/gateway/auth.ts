@@ -46,5 +46,16 @@ export function buildForwardHeaders(req: Request, isPublic: boolean): Record<str
   //          new UnauthorizedError() (the gateway turns it into a 401)
   //        - no valid token on a public route → fine, just no x-user-id
   //   4. Return the headers.
-  throw new Error("not implemented");
+  
+  const requestId = req.header("x-request-id") ?? randomUUID();
+  const headers: Record<string, string> = { "x-request-id": requestId };
+  const userId = verifyToken(req.header("authorization"));
+
+  if (userId) {
+    headers["x-user-id"] = String(userId);
+  } else if (!isPublic) {
+    throw new UnauthorizedError();
+  }
+
+  return headers;
 }

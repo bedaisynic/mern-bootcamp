@@ -12,6 +12,7 @@ export const moviesClient = {
     // callService<Showtime>(...) and return the result. A GET needs no
     // options. If the showtime doesn't exist, movies answers 404 and
     // callService throws it for you: nothing to catch here.
-    throw new Error("not implemented");
+    
+    return callService<Showtime>(context, "movies", `/showtimes/${showtimeId}`);
   },
 };

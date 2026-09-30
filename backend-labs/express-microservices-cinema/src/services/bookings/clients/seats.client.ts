@@ -13,7 +13,17 @@ export const seatsClient = {
     //      pass to callService is { holdId: number }.
     //   2. Return just the holdId number, not the whole object.
     // A taken seat makes seats answer 409, and callService throws it for you.
-    throw new Error("not implemented");
+    const res = await callService<{ holdId: number }>(
+      context,
+      "seats",
+      "/internal/seats/holds",
+      {
+        method: "POST",
+        body: { showtimeId, seats },
+      }
+    );
+
+    return res.holdId;
   },
 
   /** Puts held seats back on sale. Safe to call twice. */
@@ -21,6 +31,13 @@ export const seatsClient = {
     // TODO: DELETE /internal/seats/holds/:holdId on the "seats" service. No
     // body. It answers 204 No Content, so the type is `void` and there's
     // nothing to return.
-    throw new Error("not implemented");
+    await callService<void>(
+      context,
+      "seats",
+      `/internal/seats/holds/${holdId}`,
+      {
+        method: "DELETE",
+      }
+    )
   },
 };

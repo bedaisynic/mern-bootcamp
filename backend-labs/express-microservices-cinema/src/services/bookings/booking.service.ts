@@ -31,14 +31,27 @@ export const bookingService = {
     //      exist? The client already throws a 404 for you. This comes first so
     //      nothing is held or charged for a showtime that isn't real.
     //
+      const showtime = await moviesClient.getShowtime(context, input.showtimeId);
 
     //   2. Hold the seats (seatsClient.hold). You get back a holdId: keep it,
     //      it's the only way to release these seats later. Taken seats → the
     //      client throws seats' 409, and you never reach the payment step.
+      const holdId = await seatsClient.hold(context, input.showtimeId, input.seats);
     //
     //   3. Save the booking as pending (bookingRepository.createPending),
     //      copying what you need from the showtime into it: this service
     //      can't JOIN to the movies data later. total = price × number of seats.
+      const total = showtime.price * input.seats.length;
+
+      const booking = bookingRepository.createPending({
+        userId: context.userId,
+        showtimeId: showtime.id,
+        movieTitle: showtime.movieTitle,
+        startsAt: showtime.startsAt,
+        seats: input.seats,
+        total,
+        holdId,
+      });
     //
     //   4. Charge the card (paymentsClient.charge) for the total. If the charge
     //      fails for ANY reason (declined, payments down, too slow), before
@@ -49,13 +62,50 @@ export const bookingService = {
     //          should still get the payment error, not a seats error.
     //        - mark the booking payment_failed
     //
+        let payment;
+
+        try {
+          payment = await paymentsClient.charge(
+            context,
+            booking.id,
+            total
+          );
+        } catch (error) {
+          // Release the seats if payment fails
+          try {
+            await seatsClient.release(context, holdId);
+          } catch (releaseError) {
+            console.error("Failed to release seats:", releaseError);
+          }
+
+          // Mark the booking as payment_failed
+          bookingRepository.markPaymentFailed(booking.id);
+
+          // Preserve the original payment error
+          throw error;
+        }
+
+
     //   5. Mark the booking confirmed with the payment's id, and return it.
     //
+        const confirmedBooking = bookingRepository.markConfirmed(
+          booking.id,
+          payment.id
+        );
+
+
+
     //   6. Send the confirmation email (notificationsClient), but DON'T
     //      await it: the booking is already done, and a slow or broken email
     //      service must neither delay nor fail it. Add a .catch() that logs,
     //      so a failed email doesn't crash the process.
-    throw new Error("not implemented");
+      notificationsClient
+        .sendBookingConfirmation(context, confirmedBooking)
+        .catch((error) => {
+          console.error("Failed to send confirmation email:", error);
+        });
+
+      return confirmedBooking;
   },
 
   // given
@@ -82,6 +132,32 @@ export const bookingService = {
     // step should go first, and which failure should stop the cancellation?
     // The last two tests in cancel-booking.test.ts pin down the answer —
     // think about which half-finished state is worse for the customer.
-    throw new Error("not implemented");
+    
+      const booking = bookingRepository.findByIdForUser(
+        id,
+        context.userId
+      );
+
+      if (!booking) {
+        throw new HttpError(404, `Booking ${id} not found`);
+      }
+
+      if (booking.status !== "confirmed") {
+        throw new HttpError(409, "Booking cannot be cancelled");
+      }
+
+      // 1. Refund first. If refund fails, stop here.
+      await paymentsClient.refund(context, booking.paymentId!);
+
+      // 2. Release seats. If release fails, log it and continue.
+      try {
+        await seatsClient.release(context, booking.holdId);
+      } catch (error) {
+        console.error("Failed to release seats:", error);
+      }
+
+      // 3. Cancel the booking regardless of seat-release outcome.
+      return bookingRepository.markCancelled(booking.id);
   },
+
 };
