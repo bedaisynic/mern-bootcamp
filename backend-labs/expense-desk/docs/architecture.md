@@ -8,7 +8,7 @@ expense-desk/
       ai/workflow.ts           👉 YOUR CODE, part 1: processClaim(claimId), the workflow
       ai/agent.ts              👉 YOUR CODE, part 2: investigateClaim(claimId), the agent
       tools/                   the company data as tools (functions + schemas)
-      llm.ts                   ai.messages.create(...): the Anthropic SDK call, always Haiku
+      llm.ts                   ai.responses.create(...): the OpenAI Responses API, model from OPENAI_MODEL
       modules/claims/          routes → controller → service for /api/claims
       modules/employees/       /api/employees
       store.ts                 the in-memory "database", re-seeded on restart or reset

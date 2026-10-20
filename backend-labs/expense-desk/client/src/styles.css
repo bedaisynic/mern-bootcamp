@@ -58,7 +58,10 @@ button {
 }
 button:disabled {
   opacity: 0.6;
-  cursor: wait;
+  cursor: not-allowed;
+}
+button[aria-busy="true"] {
+  cursor: progress;
 }
 button.secondary {
   background: #e2e8f0;
@@ -204,4 +207,33 @@ main {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 0.75rem;
+}
+
+.approval-queue {
+  margin: 0 0 1rem;
+}
+.approval-item {
+  border-top: 1px solid #ddd;
+  padding: 16px 0;
+}
+.approval-item .actions {
+  display: flex;
+  gap: 8px;
+}
+
+@media (max-width: 760px) {
+  main {
+    grid-template-columns: 1fr;
+  }
+  .top {
+    flex-wrap: wrap;
+  }
+  .row {
+    flex-wrap: wrap;
+  }
+  .receipt {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    max-width: 100%;
+  }
 }

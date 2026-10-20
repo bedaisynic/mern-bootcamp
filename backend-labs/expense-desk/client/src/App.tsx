@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "./api";
+import ApprovalQueue from "./components/ApprovalQueue";
 import ClaimDetail from "./components/ClaimDetail";
 import ClaimList from "./components/ClaimList";
 import NewClaimForm from "./components/NewClaimForm";
 import type { Claim, ClaimSummary } from "./types";
 
 export default function App() {
+  const [revision, setRevision] = useState(0);
   const [claims, setClaims] = useState<ClaimSummary[]>([]);
   // ?claim=C04 in the URL opens that claim, so a link can point at one claim
   const [selectedId, setSelectedId] = useState<string | null>(() =>
@@ -15,6 +17,7 @@ export default function App() {
   const [error, setError] = useState("");
 
   const loadClaims = useCallback(() => {
+    setRevision((value) => value + 1);
     api
       .claims()
       .then(setClaims)
@@ -60,10 +63,15 @@ export default function App() {
       )}
       {showForm && <NewClaimForm onCreated={created} onCancel={() => setShowForm(false)} />}
 
+      <ApprovalQueue revision={revision} onChanged={loadClaims} onSelect={setSelectedId} />
       <main>
         <ClaimList claims={claims} selectedId={selectedId} onSelect={setSelectedId} />
         {selectedId ? (
-          <ClaimDetail key={selectedId} claimId={selectedId} onChanged={loadClaims} />
+          <ClaimDetail
+            key={`${selectedId}-${revision}`}
+            claimId={selectedId}
+            onChanged={loadClaims}
+          />
         ) : (
           <section className="detail empty">Pick a claim on the left.</section>
         )}

@@ -10,7 +10,8 @@ export type Employee = {
 };
 
 // "new" until processClaim has run. Add your own statuses (for example for human approval).
-export type ClaimStatus = "new" | "processed";
+export type ClaimStatus =
+  "new" | "processing" | "processed" | "needs_approval" | "paid" | "manager_rejected";
 
 export type Claim = {
   id: string;

@@ -61,14 +61,20 @@ export default function ClaimDetail({ claimId, onChanged }: Props) {
       <ReceiptView text={claim.receiptText} />
 
       <div className="actions">
-        <button onClick={process} disabled={busy || payments.length > 0}>
+        <button
+          onClick={process}
+          disabled={busy || claim.status !== "new" || payments.length > 0}
+          aria-busy={busy || claim.status === "processing"}
+        >
           {payments.length > 0
             ? "Paid"
-            : busy
+            : busy || claim.status === "processing"
               ? "Processing…"
-              : result
-                ? "Process again"
-                : "Process with AI"}
+              : claim.status === "needs_approval"
+                ? "Awaiting manager approval"
+                : result
+                  ? "Review complete"
+                  : "Process with AI"}
         </button>
       </div>
       {error && <p className="error">{error}</p>}

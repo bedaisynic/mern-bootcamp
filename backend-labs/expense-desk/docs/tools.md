@@ -8,16 +8,35 @@ The only way to reach company data. Each tool works in both styles:
 
 ```ts
 import { tools, readToolSchemas, payClaimSchema, runTool } from "../tools";
+import { ai, toOpenAITools } from "../llm";
 
 // In a workflow step: your code calls the function
 const trips = tools.getTravelCalendar({ employeeId: "E01" });
 
 // In an agent: give the model the schemas, then run what it asks for
-const response = await ai.messages.create({ max_tokens: 1000, tools: readToolSchemas, messages });
-for (const block of response.content) {
-  if (block.type === "tool_use") {
-    const output = runTool(block.name, block.input); // a string, ready for a tool_result block
-  }
+const response = await ai.responses.create({
+  max_output_tokens: 1000,
+  tools: toOpenAITools(readToolSchemas),
+  input: [{ role: "user", content: "Investigate this expense claim." }],
+});
+const toolResults = response.output.flatMap((item) => {
+  if (item.type !== "function_call") return [];
+  return [
+    {
+      type: "function_call_output" as const,
+      call_id: item.call_id,
+      output: runTool(item.name, JSON.parse(item.arguments)),
+    },
+  ];
+});
+// Continue only when the model requested tools. Add a turn cap in your agent.
+if (toolResults.length > 0) {
+  const next = await ai.responses.create({
+    previous_response_id: response.id,
+    input: toolResults,
+    tools: toOpenAITools(readToolSchemas),
+    max_output_tokens: 1000,
+  });
 }
 ```
 
@@ -37,19 +56,24 @@ for (const block of response.content) {
 
 ## `ai` (server/src/llm.ts)
 
-The Anthropic SDK call you know from the lectures, with the same parameters:
+The OpenAI Responses API, with the configured model applied by the wrapper:
 
 ```ts
 import { ai } from "../llm";
 
-const response = await ai.messages.create({
-  max_tokens: 500,
-  system: "...",
-  messages: [{ role: "user", content: "..." }],
-  // tools, tool_choice: { type: "tool", name: "..." } and so on work as usual
+const response = await ai.responses.create({
+  max_output_tokens: 500,
+  instructions: "...",
+  input: [{ role: "user", content: "..." }],
+  // tools: toOpenAITools(readToolSchemas),
+  // tool_choice: { type: "function", name: "getPolicy" },
 });
+console.log(response.output_text);
 ```
 
-- The model is always `claude-haiku-5-5`, and thinking is off. You do not pass `model`.
-- If a forced tool call comes back with missing fields, check that `response.stop_reason` is not
-  `"max_tokens"`, and raise `max_tokens`.
+- The default model is `gpt-6-luna`. Set `OPENAI_MODEL` in `.env` to choose another OpenAI model.
+- You do not pass `model`; the wrapper applies the configured model and always uses OpenAI's endpoint.
+- The fixed tools module keeps the course's original `name`, `description`, and `input_schema` format. Convert those schemas with `toOpenAITools` from `llm.ts` before passing them to OpenAI. The adapter returns `type: "function"`, `name`, and `parameters`; `strict: false` preserves optional arguments such as policy topic. Native OpenAI tools (such as the decision-report tool) need no conversion.
+- Function-call arguments are JSON strings: parse them before passing them to `runTool`.
+- Return tool results as `function_call_output` items with the matching `call_id`.
+- If `response.status` is `"incomplete"`, inspect `response.incomplete_details` and handle the failure before acting on a decision.

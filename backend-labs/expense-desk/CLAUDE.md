@@ -17,8 +17,8 @@ npm run typecheck    # run before saying anything is done
   let them update it.
 - **Do not edit** `server/src/tools/`, `server/src/llm.ts` or `server/data/`.
   They are the lab's fixed parts.
-- All company data goes through `tools.*`; all model calls go through `ai.messages.create` from
-  `server/src/llm.ts`. Never import `@anthropic-ai/sdk` to create a client directly, and never read
+- All company data goes through `tools.*`; all model calls go through `ai.responses.create` from
+  `server/src/llm.ts`. Never import `openai` to create a client directly, and never read
   `server/data/*.json` from the AI code.
 - Never hard-code claim ids, employee ids or answers.
 - `payClaim` sends money and is not idempotent. Never call it for `reject`, `escalate` or
