@@ -1,4 +1,12 @@
-import type { Claim, ClaimDetail, ClaimResult, ClaimSummary, Employee, NewClaim } from "./types";
+import type {
+  ApprovalItem,
+  Claim,
+  ClaimDetail,
+  ClaimResult,
+  ClaimSummary,
+  Employee,
+  NewClaim,
+} from "./types";
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, init);
@@ -20,6 +28,9 @@ export const api = {
   claim: (id: string) => request<ClaimDetail>(`/api/claims/${id}`),
   createClaim: (input: NewClaim) => request<Claim>("/api/claims", post(input)),
   processClaim: (id: string) => request<ClaimResult>(`/api/claims/${id}/process`, post()),
+  approvals: () => request<ApprovalItem[]>("/api/claims/approvals"),
+  approveClaim: (id: string) => request<ClaimResult>(`/api/claims/${id}/approve`, post()),
+  rejectClaim: (id: string) => request<ClaimResult>(`/api/claims/${id}/reject`, post()),
   employees: () => request<Employee[]>("/api/employees"),
   reset: () => request<void>("/api/admin/reset", post()),
 };

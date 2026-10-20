@@ -6,17 +6,21 @@ the routine claims and an **AI agent** for the unusual ones. Then you add the ma
 
 ```bash
 npm install
-cp .env.example .env    # paste your ANTHROPIC_API_KEY
+cp .env.example .env    # paste your OPENAI_API_KEY
 npm run dev             # API: http://localhost:3001   app: http://localhost:5173
 npm run typecheck
 ```
+
+Model calls use the OpenAI API and are billed to the account owning `OPENAI_API_KEY`.
+The first workflow and read-only agent are implemented. Processing claims calls the OpenAI API; emails are saved drafts and payments are simulated in memory. Manager approval has no authentication in this lab.
 
 ## What exists today
 
 - An inbox of 13 expense claims, a claim view with the receipt, and a "Process with AI" button.
 - After processing: the decision, the amount, the rules, the email to the employee, and the payments.
 - A form to submit your own claims, and "Reset data" to start over.
-- `server/src/ai/workflow.ts` and `server/src/ai/agent.ts` are stubs: every claim goes to Finance.
+- `server/src/ai/workflow.ts` handles routine reviews; `server/src/ai/agent.ts` investigates unusual claims.
+- A manager queue supports approval/payment and rejection. See `docs/design.md` for the first implementation and its limits.
 
 ## How much should the AI decide?
 
@@ -100,8 +104,8 @@ Hand in: `docs/design.md` and your code.
 
 ## Rules
 
-- Use the provided `tools` for all data and `ai.messages.create` for all model calls. The model is
-  always `claude-haiku-5-5`.
+- Use the provided `tools` for all data and `ai.responses.create` for all model calls. The model is
+  `gpt-6-luna` by default; set `OPENAI_MODEL` in `.env` to use another OpenAI model.
 - Do not change `server/src/tools`, `server/src/llm.ts` or `server/data`.
   Everything else is yours.
 - Do not hard-code claim ids or answers. The system must work on claims it has not seen.
@@ -113,9 +117,13 @@ Hand in: `docs/design.md` and your code.
 | `server/src/ai/workflow.ts` | 👉 part 1: the workflow, where every claim starts |
 | `server/src/ai/agent.ts`    | 👉 part 2: the agent, for the unusual claims      |
 | `server/src/tools`          | the company data as tools, and `payClaim`         |
-| `server/src/llm.ts`         | `ai.messages.create`, the model client            |
+| `server/src/llm.ts`         | `ai.responses.create`, the model client           |
 | `server/src/modules/claims` | the claims API (routes, controller, service)      |
 | `server/data`               | the seed data and the policy                      |
 | `client/src`                | the React app: `App.tsx`, `api.ts`, `components/` |
 
 More: [architecture](docs/architecture.md), [tools](docs/tools.md).
+
+## Validate the first implementation
+
+Use Node.js 22 or newer. Run `npm run typecheck`, `npm run test -w server` (mocked OpenAI, no API charges), and `npm run build`. Set `OPENAI_API_KEY` in `.env` before reviewing real claims. Tests do not establish live model accuracy.

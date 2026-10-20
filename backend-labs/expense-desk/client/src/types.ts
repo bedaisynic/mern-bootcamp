@@ -1,7 +1,8 @@
 // Mirrors server/src/types.ts and server/src/modules/claims/claims.types.ts
 
 export type Decision = "approve" | "partial" | "reject" | "needs_approval" | "escalate";
-export type ClaimStatus = "new" | "processed";
+export type ClaimStatus =
+  "new" | "processing" | "processed" | "needs_approval" | "paid" | "manager_rejected";
 
 export type Employee = {
   id: string;
@@ -58,3 +59,5 @@ export type NewClaim = {
   note: string;
   receiptText: string;
 };
+
+export type ApprovalItem = ClaimDetail & { manager: Employee | null };
