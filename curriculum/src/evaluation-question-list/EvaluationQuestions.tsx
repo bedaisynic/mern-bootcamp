@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useId, useState } from "react";
+import { EVALUATION_ANSWERS } from "./answers";
 import DayNav from "../components/DayNav";
 import { EVALUATION_SECTIONS, type Question } from "./questions";
 
@@ -126,28 +127,41 @@ function QuestionItem({
   onToggle: () => void;
 }) {
   const [text, followUps] = typeof question === "string" ? [question, []] : question;
+  const [answerOpen, setAnswerOpen] = useState(false);
+  const answerId = useId();
+  const answer = EVALUATION_ANSWERS[text];
 
   return (
-    <li
-      value={number}
-      role="checkbox"
-      aria-checked={learned}
-      tabIndex={0}
-      className={learned ? "learned" : undefined}
-      onClick={() => {
-        // Dragging to select text (to copy a question) shouldn't count as a click.
-        if (window.getSelection()?.toString()) return;
-        onToggle();
-      }}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onToggle();
-        }
-      }}
-    >
-      {learned && <span className="eval-check" aria-hidden="true">✓ </span>}
-      {text}
+    <li value={number} className={learned ? "learned" : undefined}>
+      <span
+        role="checkbox"
+        aria-checked={learned}
+        tabIndex={0}
+        className="eval-question-text"
+        onClick={() => {
+          // Selecting text to copy a question should not mark it learned.
+          if (!window.getSelection()?.toString()) onToggle();
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onToggle();
+          }
+        }}
+      >
+        {learned && <span className="eval-check" aria-hidden="true">✓ </span>}
+        {text}
+      </span>{" "}
+      <button
+        type="button"
+        className="eval-answer-toggle"
+        aria-expanded={answerOpen}
+        aria-controls={answerId}
+        aria-label={`${answerOpen ? "Hide" : "Show"} answer: ${text}`}
+        onClick={() => setAnswerOpen((open) => !open)}
+      >
+        <span aria-hidden="true">{answerOpen ? "▾" : "▸"}</span>
+      </button>
       {followUps.length > 0 && (
         <ul className="eval-followups">
           {followUps.map((f) => (
@@ -155,6 +169,15 @@ function QuestionItem({
           ))}
         </ul>
       )}
+      <div id={answerId} className="eval-answer" hidden={!answerOpen}>
+        {answer ? (
+          <ul>
+            {answer.map((point) => <li key={point}>{point}</li>)}
+          </ul>
+        ) : (
+          <p>Answer coming in the next batch.</p>
+        )}
+      </div>
     </li>
   );
 }
@@ -230,7 +253,7 @@ export default function EvaluationQuestions() {
         <div className="eval-toolbar">
           <span>
             Click a question to mark it learned; click again to undo. Progress is saved in this
-            browser. <strong>{learnedTotal} / {TOTAL}</strong> learned.
+            browser. Use the arrow after a question to show or hide its answer. <strong>{learnedTotal} / {TOTAL}</strong> learned.
           </span>
           <label>
             <input

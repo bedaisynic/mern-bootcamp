@@ -3180,7 +3180,6 @@ pre .ln {
   user-select: none;
 }
 .eval-questions > li {
-  cursor: pointer;
   margin-left: -0.4rem;
   padding: 0.15rem 0.4rem;
   border-radius: 4px;
@@ -3189,7 +3188,8 @@ pre .ln {
 .eval-questions > li:hover {
   background: #f0f4fa;
 }
-.eval-questions > li:focus-visible {
+.eval-question-text:focus-visible,
+.eval-answer-toggle:focus-visible {
   outline: 2px solid #2255cc;
   outline-offset: 1px;
 }
@@ -4016,4 +4016,48 @@ pre .ln {
   border-color: #c9d3e0;
   color: #5a6470;
   font-style: italic;
+}
+
+/* Answer visibility is independent of learned-question progress. */
+.eval-question-text {
+  cursor: pointer;
+  border-radius: 3px;
+}
+.eval-answer-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.75rem;
+  min-height: 1.75rem;
+  padding: 0 0.25rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  background: #fff;
+  color: #2255cc;
+  font: inherit;
+  cursor: pointer;
+  vertical-align: baseline;
+}
+.eval-answer-toggle:hover {
+  background: #e8efff;
+}
+.eval-answer {
+  margin: 0.5rem 0 0.75rem;
+  padding: 0.6rem 1rem;
+  border-left: 3px solid #2255cc;
+  background: #f7f9fc;
+  color: #253247;
+  font-size: 0.95rem;
+  cursor: auto;
+}
+.eval-answer ul {
+  margin: 0;
+  padding-left: 1.2rem;
+  list-style: disc;
+}
+.eval-answer li + li {
+  margin-top: 0.3rem;
+}
+.eval-answer p {
+  margin: 0;
 }
