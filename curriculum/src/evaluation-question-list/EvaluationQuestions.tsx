@@ -175,7 +175,7 @@ function QuestionItem({
             {answer.map((point) => <li key={point}>{point}</li>)}
           </ul>
         ) : (
-          <p>Answer coming in the next batch.</p>
+          <p>Answer not available yet.</p>
         )}
       </div>
     </li>
