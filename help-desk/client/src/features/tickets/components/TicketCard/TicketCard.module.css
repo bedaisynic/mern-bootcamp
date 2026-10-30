@@ -1,0 +1,63 @@
+.card {
+  display: block;
+  padding: 20px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.title {
+  margin: 0;
+  font-size: 18px;
+  color: #2c3e50;
+  flex: 1;
+}
+
+.badges {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+
+.info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 14px;
+}
+
+.infoItem {
+  display: flex;
+  gap: 6px;
+}
+
+.label {
+  color: #7f8c8d;
+  font-weight: 500;
+}
+
+.sla {
+  color: #2ecc71;
+  font-weight: 500;
+}
+
+.breached {
+  color: #e74c3c;
+  font-weight: 700;
+}

@@ -1,0 +1,346 @@
+openapi: 3.0.3
+info:
+  title: Help Desk API
+  version: 1.0.0
+  description: |
+    REST API for the Help Desk ticket tracker. Data lives in an in-memory SQLite database,
+    so it resets (and re-seeds with 5 users and 20 tickets) every time the server restarts.
+
+    Every response is wrapped: `{ "success": true, "data": ..., "message"?: ... }`.
+    Errors look like `{ "success": false, "message": "..." }`.
+    Every request has an artificial ~550 ms delay, so loading states are visible.
+
+    Seed logins (password `123` for all): `admin`, `alice`, `bob`, `carol`, `dave`.
+servers:
+  - url: http://localhost:4000/api
+tags:
+  - name: Tickets
+  - name: Users
+  - name: Stats
+paths:
+  /tickets:
+    get:
+      tags: [Tickets]
+      summary: List tickets (paginated, filterable, sortable)
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, default: 10 } }
+        - { name: search, in: query, description: Matches title or description, schema: { type: string } }
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/Status' } }
+        - { name: priority, in: query, schema: { $ref: '#/components/schemas/Priority' } }
+        - { name: category, in: query, schema: { $ref: '#/components/schemas/Category' } }
+        - { name: assigneeId, in: query, schema: { type: integer } }
+        - { name: sortBy, in: query, schema: { type: string, enum: [createdAt, updatedAt, priority, slaDeadline], default: createdAt } }
+        - { name: sortOrder, in: query, schema: { type: string, enum: [asc, desc], default: desc } }
+      responses:
+        '200':
+          description: One page of tickets
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Ticket' }
+                  pagination: { $ref: '#/components/schemas/Pagination' }
+    post:
+      tags: [Tickets]
+      summary: Create a ticket
+      description: Status starts as `open`; `slaDeadline` is computed from priority (urgent 4h, high 8h, medium 24h, low 72h).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TicketInput' }
+      responses:
+        '201':
+          description: The created ticket
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TicketResponse' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+  /tickets/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: integer, minimum: 1 } }
+    get:
+      tags: [Tickets]
+      summary: Get one ticket (includes its assignee)
+      responses:
+        '200':
+          description: The ticket
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TicketResponse' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [Tickets]
+      summary: Update a ticket (send only the fields you want to change)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TicketUpdate' }
+      responses:
+        '200':
+          description: The updated ticket
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TicketResponse' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Tickets]
+      summary: Delete a ticket
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  message: { type: string, example: Ticket deleted successfully }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /tickets/{id}/status:
+    patch:
+      tags: [Tickets]
+      summary: Change a ticket's status
+      description: |
+        Allowed transitions: `open → in_progress`, `in_progress → resolved | open`,
+        `resolved → closed | open`, `closed → open`. Anything else is a 409.
+        Moving to `resolved` sets `resolvedAt`; moving to `closed` sets `closedAt`.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer, minimum: 1 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { $ref: '#/components/schemas/Status' }
+      responses:
+        '200':
+          description: The updated ticket
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TicketResponse' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: That status change is not allowed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { success: false, message: Cannot change status from open to closed }
+  /users:
+    get:
+      tags: [Users]
+      summary: List all users
+      responses:
+        '200':
+          description: All users
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/User' }
+  /users/{id}:
+    get:
+      tags: [Users]
+      summary: Get one user
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer, minimum: 1 } }
+      responses:
+        '200':
+          description: The user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  data: { $ref: '#/components/schemas/User' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /users/login:
+    post:
+      tags: [Users]
+      summary: Log in (no token, just returns the user)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username: { type: string, example: alice }
+                password: { type: string, example: '123' }
+      responses:
+        '200':
+          description: The logged-in user, without the password
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  data: { $ref: '#/components/schemas/User' }
+                  message: { type: string, example: Login successful }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404':
+          description: Wrong username or password
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { success: false, message: Invalid username or password }
+  /stats:
+    get:
+      tags: [Stats]
+      summary: Dashboard statistics
+      responses:
+        '200':
+          description: Totals, SLA breaches and breakdowns
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  data: { $ref: '#/components/schemas/Stats' }
+  /stats/recent:
+    get:
+      tags: [Stats]
+      summary: Most recently updated tickets (5 by default)
+      parameters:
+        - { name: limit, in: query, description: How many tickets to return, schema: { type: integer, minimum: 1, maximum: 10, default: 5 } }
+      responses:
+        '200':
+          description: Recently updated tickets, newest first
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Ticket' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+components:
+  responses:
+    ValidationError:
+      description: Invalid id, query param or request body
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { success: false, message: Title must be at least 5 characters }
+    NotFound:
+      description: Nothing with that id
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { success: false, message: Ticket with id 999 not found }
+  schemas:
+    Status:
+      type: string
+      enum: [open, in_progress, resolved, closed]
+    Priority:
+      type: string
+      enum: [low, medium, high, urgent]
+    Category:
+      type: string
+      enum: [bug, feature_request, question, account_issue, other]
+    Role:
+      type: string
+      enum: [admin, agent, viewer]
+    TicketInput:
+      type: object
+      required: [title, description, priority, category, reporterName, reporterEmail]
+      properties:
+        title: { type: string, minLength: 5, example: Printer on floor 2 is offline }
+        description: { type: string, example: Nobody on the floor can print since this morning. }
+        priority: { $ref: '#/components/schemas/Priority' }
+        category: { $ref: '#/components/schemas/Category' }
+        reporterName: { type: string, example: Jane Smith }
+        reporterEmail: { type: string, format: email, example: jane@example.com }
+        assigneeId: { type: integer, nullable: true, example: 2 }
+    TicketUpdate:
+      description: Same fields as TicketInput, but all optional
+      type: object
+      properties:
+        title: { type: string, minLength: 5 }
+        description: { type: string }
+        priority: { $ref: '#/components/schemas/Priority' }
+        category: { $ref: '#/components/schemas/Category' }
+        reporterName: { type: string }
+        reporterEmail: { type: string, format: email }
+        assigneeId: { type: integer, nullable: true }
+    Ticket:
+      allOf:
+        - $ref: '#/components/schemas/TicketInput'
+        - type: object
+          properties:
+            id: { type: integer, example: 1 }
+            status: { $ref: '#/components/schemas/Status' }
+            slaDeadline: { type: string, format: date-time }
+            resolvedAt: { type: string, format: date-time, nullable: true }
+            closedAt: { type: string, format: date-time, nullable: true }
+            createdAt: { type: string, format: date-time }
+            updatedAt: { type: string, format: date-time }
+            assignee:
+              description: Only returned by GET /tickets/{id}
+              allOf:
+                - $ref: '#/components/schemas/User'
+    TicketResponse:
+      type: object
+      properties:
+        success: { type: boolean, example: true }
+        data: { $ref: '#/components/schemas/Ticket' }
+        message: { type: string }
+    User:
+      type: object
+      properties:
+        id: { type: integer, example: 2 }
+        username: { type: string, example: alice }
+        displayName: { type: string, example: Alice Johnson }
+        email: { type: string, example: alice@helpdesk.com }
+        role: { $ref: '#/components/schemas/Role' }
+        createdAt: { type: string, format: date-time }
+    Pagination:
+      type: object
+      properties:
+        page: { type: integer }
+        limit: { type: integer }
+        totalItems: { type: integer }
+        totalPages: { type: integer }
+    Stats:
+      type: object
+      properties:
+        totalTickets: { type: integer, example: 20 }
+        openTickets: { type: integer, example: 8 }
+        avgResolutionTimeSeconds: { type: integer, example: 14400 }
+        slaBreachCount: { type: integer, example: 3 }
+        statusCounts:
+          type: object
+          additionalProperties: { type: integer }
+          example: { open: 8, in_progress: 5, resolved: 4, closed: 3 }
+        priorityCounts:
+          type: object
+          additionalProperties: { type: integer }
+          example: { low: 4, medium: 8, high: 5, urgent: 3 }
+    Error:
+      type: object
+      properties:
+        success: { type: boolean, example: false }
+        message: { type: string }

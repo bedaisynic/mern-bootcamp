@@ -1,0 +1,18 @@
+.badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: white;
+  text-transform: capitalize;
+}
+
+.status_open { background-color: #3498db; }
+.status_in_progress { background-color: #f39c12; }
+.status_resolved { background-color: #2ecc71; }
+.status_closed { background-color: #95a5a6; }
+
+.priority_low { background-color: #95a5a6; }
+.priority_medium { background-color: #3498db; }
+.priority_high { background-color: #e67e22; }
+.priority_urgent { background-color: #e74c3c; }

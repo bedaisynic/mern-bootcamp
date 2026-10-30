@@ -1,0 +1,47 @@
+.panel {
+  background-color: white;
+  padding: 24px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.title {
+  margin-bottom: 16px;
+  color: #2c3e50;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.item {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+  padding: 12px;
+  border: 1px solid #ecf0f1;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.item:hover {
+  background-color: #f8f9fa;
+}
+
+.itemRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.itemTitle {
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.itemDate {
+  font-size: 12px;
+  color: #7f8c8d;
+}

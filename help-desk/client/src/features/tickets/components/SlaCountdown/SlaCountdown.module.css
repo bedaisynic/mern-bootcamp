@@ -1,0 +1,29 @@
+.countdown {
+  font-size: 18px;
+  font-weight: 600;
+  color: #2ecc71;
+  padding: 8px 16px;
+  background-color: #d5f4e6;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.breached {
+  font-size: 18px;
+  font-weight: 700;
+  color: #e74c3c;
+  padding: 8px 16px;
+  background-color: #fadbd8;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.completed {
+  font-size: 18px;
+  font-weight: 600;
+  color: #95a5a6;
+  padding: 8px 16px;
+  background-color: #ecf0f1;
+  border-radius: 4px;
+  display: inline-block;
+}
