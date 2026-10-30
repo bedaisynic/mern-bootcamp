@@ -1,4 +1,4 @@
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, useContext, useState, type ReactNode } from "react";
 import type { FavoritesContextType } from "../types/favorites.types";
 
 const FavoritesContext = createContext<FavoritesContextType | undefined>(
@@ -6,14 +6,28 @@ const FavoritesContext = createContext<FavoritesContextType | undefined>(
 );
 
 export function FavoritesProvider({ children }: { children: ReactNode }) {
-  // 🔴 TODO: Create favorites state, toggleFavorite and isFavorite functions, wrap children in Provider
+  // TODO: Create favorites state, toggleFavorite and isFavorite functions, wrap children in Provider
+  const [favorite, setFavorite] = useState<number[]>([]);
+
+  const toggleFavorite = (id: number) => {
+    setFavorite((prev) => {
+      if (prev.includes(id)) {
+        return prev.filter((item) => item !== id);
+      }
+      return [...prev, id];
+    });
+  };
+
+  const isFavorite = (id: number) => {
+    return favorite.includes(id);
+  };
 
   return (
     <FavoritesContext.Provider
       value={{
-        favorites: [],
-        toggleFavorite: () => {},
-        isFavorite: () => false,
+        favorites: favorite,
+        toggleFavorite,
+        isFavorite,
       }}
     >
       {children}

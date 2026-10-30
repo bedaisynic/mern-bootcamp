@@ -1,10 +1,14 @@
-import { db } from '../../db/index.js';
-import { recipes } from '../../db/schema.js';
-import { sql } from 'drizzle-orm';
+import { db } from "../../db/index.js";
+import { recipes } from "../../db/schema.js";
+import { sql } from "drizzle-orm";
 
 export const getStats = async () => {
-  const totalCount = await db.select({ count: sql<number>`count(*)` }).from(recipes);
-  const avgPrepTime = await db.select({ avg: sql<number>`avg(prep_time_minutes)` }).from(recipes);
+  const totalCount = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(recipes);
+  const avgPrepTime = await db
+    .select({ avg: sql<number>`avg(prep_time_minutes)` })
+    .from(recipes);
   const cuisineBreakdown = await db
     .select({
       cuisine: recipes.cuisine,

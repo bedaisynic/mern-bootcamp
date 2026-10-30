@@ -28,11 +28,27 @@ export function RecipeList() {
       setLoading(true);
       setError(null);
       try {
-        // 🔴 TODO 1: GET `${API_URL}/recipes` with axios, passing the filters and page as query params
+        //  TODO 1: GET `${API_URL}/recipes` with axios, passing the filters and page as query params
         // (search, cuisine, difficulty, isVegetarian, sortBy, sortOrder, page). Empty strings should be left out.
         // Then store response.data with setData.
+
+        const res = await axios.get(`${API_URL}/recipes`, {
+          params: {
+            search: search || undefined,
+            cuisine: cuisine || undefined,
+            difficulty: difficulty || undefined,
+            isVegetarian: isVegetarian || undefined,
+            sortBy,
+            sortOrder,
+            page,
+          },
+        });
+
+        setData(res.data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to fetch recipes");
+        setError(
+          err instanceof Error ? err.message : "Failed to fetch recipes",
+        );
       } finally {
         setLoading(false);
       }
@@ -42,10 +58,11 @@ export function RecipeList() {
   }, [search, cuisine, difficulty, isVegetarian, sortBy, sortOrder, page]);
 
   // Changing any filter sends the user back to page 1
-  const handleFilterChange = (setter: (value: string) => void) => (value: string) => {
-    setter(value);
-    setPage(1);
-  };
+  const handleFilterChange =
+    (setter: (value: string) => void) => (value: string) => {
+      setter(value);
+      setPage(1);
+    };
 
   return (
     <div className={styles.container}>
@@ -77,15 +94,20 @@ export function RecipeList() {
       {!loading && !error && data && (
         <>
           <div className={styles.grid}>
-            {/* 🔴 TODO 2: Render one RecipeCard for each recipe in data.data (give it a key and pass the recipe) */}
-            <RecipeCard />
+            {/* TODO 2: Render one RecipeCard for each recipe in data.data (give it a key and pass the recipe) */}
+            {data.data.map((item) => {
+              const { id } = item;
+              return <RecipeCard key={id} recipe={item} />;
+            })}
           </div>
 
           <div className={styles.pagination}>
-            {/* 🔴 TODO 3: Make Previous go to the previous page and Next go to the next page */}
+            {/* TODO 3: Make Previous go to the previous page and Next go to the next page */}
             <button
               disabled={page <= 1}
-              onClick={() => {}}
+              onClick={() => {
+                setPage((prev) => prev - 1);
+              }}
               className={styles.pageButton}
             >
               Previous
@@ -95,7 +117,9 @@ export function RecipeList() {
             </span>
             <button
               disabled={page >= data.totalPages}
-              onClick={() => {}}
+              onClick={() => {
+                setPage((prev) => prev + 1);
+              }}
               className={styles.pageButton}
             >
               Next

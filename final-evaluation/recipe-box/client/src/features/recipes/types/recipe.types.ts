@@ -16,6 +16,7 @@ export interface Recipe {
   ingredients: Ingredient[];
   instructions: string;
   imageUrl: string | null;
+  totalTimeMinutes?: number;
   createdAt: string;
   updatedAt: string;
 }
