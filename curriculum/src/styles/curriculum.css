@@ -4061,3 +4061,8 @@ pre .ln {
 .eval-answer p {
   margin: 0;
 }
+
+.eval-answer p + ul,
+.eval-answer ul + p {
+  margin-top: 0.5rem;
+}

@@ -115,6 +115,17 @@ function scrollToSection(id: string) {
   history.replaceState(null, "", `#${id}`);
 }
 
+// Render the inline code and bold-code notation used in answer text.
+function formatAnswerText(text: string) {
+  return text.split(/(\*\*`[^`]+`\*\*|`[^`]+`)/g).map((part, index) => {
+    if (part.startsWith("**`")) {
+      return <strong key={index}><code>{part.slice(3, -3)}</code></strong>;
+    }
+    if (part.startsWith("`")) return <code key={index}>{part.slice(1, -1)}</code>;
+    return part;
+  });
+}
+
 function QuestionItem({
   question,
   number,
@@ -171,9 +182,13 @@ function QuestionItem({
       )}
       <div id={answerId} className="eval-answer" hidden={!answerOpen}>
         {answer ? (
-          <ul>
-            {answer.map((point) => <li key={point}>{point}</li>)}
-          </ul>
+          <>
+            <p>{formatAnswerText(answer.spoken)}</p>
+            <ul>
+              {answer.bullets.map((point) => <li key={point}>{formatAnswerText(point)}</li>)}
+            </ul>
+            {answer.closing && <p>{formatAnswerText(answer.closing)}</p>}
+          </>
         ) : (
           <p>Answer not available yet.</p>
         )}
