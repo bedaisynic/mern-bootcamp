@@ -83,3 +83,26 @@ it('registers a single case per demo order and enforces agent ownership', async 
   await request(app).post('/internal/cases/EX-2049/commands').set('x-internal-secret', internalSecret)
     .send({actor: {...actors.agent, id: 'different', name: 'Another agent'}, command: {type: 'investigate'}}).expect(403);
 });
+
+
+it('lists seeded cases at different stages and persists an approval on a seeded case', async () => {
+  const get = (path: string) => request(app).get(path).set('x-internal-secret', internalSecret);
+  const queuePath = '/internal/cases';
+  const {body: before} = await get(queuePath).expect(200);
+  expect(before).toEqual(expect.arrayContaining([
+    expect.objectContaining({id: 'EX-2050', orderId: 'PB-10247', status: 'Open'}),
+    expect.objectContaining({id: 'EX-2051', workflow: expect.objectContaining({status: 'pending'})}),
+    expect.objectContaining({id: 'EX-2052', status: 'Resolved'}),
+  ]));
+  const {body: pending} = await get(queuePath + '/EX-2051').expect(200);
+  await request(app).post(queuePath + '/EX-2051/commands').set('x-internal-secret', internalSecret).send({
+    actor: actors.supervisor,
+    command: {type: 'approve', workflowId: pending.workflow.id, input: {decision: 'approved', note: 'Confirmed missed delivery'}},
+  }).expect(200);
+  const {body: after} = await get(queuePath).expect(200);
+  expect(after.filter((record: {id: string}) => record.id === 'EX-2051')).toEqual([
+    expect.objectContaining({assigned: actors.agent.name, workflow: expect.objectContaining({status: 'approved'})}),
+  ]);
+  const {body: resolved} = await get(queuePath + '/EX-2052').expect(200);
+  expect(resolved.context.delivery.status).toBe('Rescheduled');
+});

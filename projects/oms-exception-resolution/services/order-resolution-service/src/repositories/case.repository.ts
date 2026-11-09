@@ -1,12 +1,13 @@
 import { PrismaClient, Prisma } from '../generated/index.js';
 import { HttpError, JsonStore, env } from '@oms/server-kit';
-import { CASE_ID, seedCase } from '@oms/oms-mock-adapters';
+import { CASE_ID, seedCase, seedCases } from '@oms/oms-mock-adapters';
 import type { FeatureEvent, ResolutionCase } from '@oms/shared-types';
 
 type State = { record: ResolutionCase; registrations?: Record<string, ResolutionCase>; outbox: FeatureEvent[]; processed: string[] };
 type Change = (record: ResolutionCase, emit: (event: FeatureEvent) => void) => Promise<void> | void;
 const store = new JsonStore<State>('resolution', () => ({record: seedCase(), outbox: [], processed: []}));
 const db = env.database ? new PrismaClient() : undefined;
+const seedById = new Map(seedCases().map(record => [record.id, record]));
 const json = (value: unknown) => value as Prisma.InputJsonValue;
 
 function requireCase(record: ResolutionCase | undefined) {
@@ -16,10 +17,11 @@ function requireCase(record: ResolutionCase | undefined) {
 function fileCase(state: State, id: string) {
   if (id === CASE_ID) return state.record;
   const registrations = state.registrations;
-  return requireCase(registrations && Object.hasOwn(registrations, id) ? registrations[id] : undefined);
+  const stored = registrations && Object.hasOwn(registrations, id) ? registrations[id] : undefined;
+  return requireCase(stored ?? structuredClone(seedById.get(id)));
 }
 function databaseCase(id: string, snapshot?: Prisma.JsonValue) {
-  return requireCase((snapshot as ResolutionCase | undefined) ?? (id === CASE_ID ? seedCase() : undefined));
+  return requireCase((snapshot as ResolutionCase | undefined) ?? structuredClone(seedById.get(id)));
 }
 export async function readCase(id: string): Promise<ResolutionCase> {
   if (!db) return fileCase(await store.read(), id);
@@ -27,15 +29,17 @@ export async function readCase(id: string): Promise<ResolutionCase> {
   return databaseCase(id, result?.snapshot);
 }
 export async function listCases() {
+  const records = new Map(seedCases().map(record => [record.id, record]));
   if (!db) {
     const state = await store.read();
-    return [state.record, ...Object.values(state.registrations ?? {})];
+    for (const record of [state.record, ...Object.values(state.registrations ?? {})]) records.set(record.id, record);
+  } else {
+    for (const row of await db.resolutionCase.findMany()) records.set(row.id, databaseCase(row.id, row.snapshot));
   }
-  const cases = (await db.resolutionCase.findMany()).map(row => databaseCase(row.id, row.snapshot));
-  return cases.some(item => item.id === CASE_ID) ? cases : [seedCase(), ...cases];
+  return [...records.values()];
 }
 export async function registerCase(record: ResolutionCase) {
-  if (record.id === CASE_ID) return {record: await readCase(record.id), created: false};
+  if (seedById.has(record.id)) return {record: await readCase(record.id), created: false};
   if (!db) return store.update(state => {
     const registrations = state.registrations ??= {};
     const existing = registrations[record.id];
@@ -53,6 +57,7 @@ export async function changeCase(id: string, change: Change, eventId?: string): 
     const record = fileCase(state, id);
     if (eventId && state.processed.includes(eventId)) return record;
     await change(record, event => state.outbox.push(event));
+    if (id !== CASE_ID) (state.registrations ??= {})[id] = record;
     if (eventId) state.processed.push(eventId);
     return record;
   });

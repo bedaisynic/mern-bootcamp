@@ -9,6 +9,9 @@ test('investigates, approves a $75 credit, executes, reviews the reply and close
   await page.goto('/');
   await expect(page.getByRole('heading', {name: 'Exception queue'})).toBeVisible();
   await expect(page.getByRole('heading', {name: 'Registered cases'})).toBeVisible();
+  await expect(page.getByRole('link', {name: 'Open case EX-2050'})).toBeVisible();
+  await expect(page.getByRole('row').filter({hasText: 'EX-2051'})).toContainText('Awaiting supervisor approval');
+  await expect(page.getByRole('row').filter({hasText: 'EX-2052'})).toContainText('Review customer response');
   const search = page.getByRole('textbox', {name: 'Search exceptions'});
   await search.fill('missing');
   await expect(page.getByText('No cases match this search.')).toBeVisible();

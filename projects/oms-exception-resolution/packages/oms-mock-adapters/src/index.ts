@@ -2,9 +2,21 @@ import type { ActionInput, PolicyReference, ResolutionCase, Workflow } from '@om
 
 export const CASE_ID = 'EX-2048';
 export const ORDER_ID = 'PB-10245';
+const additionalOrders = [
+  {orderId: 'PB-10247', caseId: 'EX-2050', customer: 'Maya Patel', email: 'maya.patel@example.com',
+    phone: '(415) 555-0143', openedAt: '2026-11-07T21:06:00.000Z',
+    notes: 'Maya called after the original window passed and asked for the earliest available appointment.'},
+  {orderId: 'PB-10248', caseId: 'EX-2051', customer: 'Lucas Reed', email: 'lucas.reed@example.com',
+    phone: '(415) 555-0172', openedAt: '2026-11-07T20:38:00.000Z',
+    notes: 'Lucas took time off for the missed appointment. Sarah requested approval for a $75 goodwill credit.'},
+  {orderId: 'PB-10249', caseId: 'EX-2052', customer: 'Ava Nguyen', email: 'ava.nguyen@example.com',
+    phone: '(415) 555-0184', openedAt: '2026-11-07T20:24:00.000Z',
+    notes: 'Ava asked for a later delivery window. The carrier confirmed a new appointment and Sarah can send the update.'},
+];
 export const intakeOrders = [
   {orderId: ORDER_ID, caseId: CASE_ID, customer: 'Emma Carter', email: 'emma.carter@example.com', phone: '(415) 555-0199'},
   {orderId: 'PB-10246', caseId: 'EX-2049', customer: 'Nora Wilson', email: 'nora.wilson@example.com', phone: '(415) 555-0126'},
+  ...additionalOrders,
 ];
 const isDemoOrder = (id: string) => intakeOrders.some(order => order.orderId === id);
 export const demoIntake = {
@@ -34,6 +46,63 @@ export const policies: Policy[] = [
   {policyId:'REPLACE-001', title:'Item replacements', text:'Check unreserved sellable stock before authorizing a replacement. Replacements require supervisor approval.'},
   {policyId:'APPROVAL-001', title:'Supervisor authorization', text:'Supervisor approval is required for full refunds, replacements, credits over $50, and requests for manager review.'},
 ];
+export function seedCases(): ResolutionCase[] {
+  return [seedCase(), ...additionalOrders.map((order, index) => {
+    const record: ResolutionCase = {
+      ...seedCase(), id: order.caseId, orderId: order.orderId, customer: order.customer,
+      openedAt: order.openedAt, exceptionDetails: order.notes,
+      audit: [{id: 'opened', at: order.openedAt, actor: 'Sarah Chen', title: 'Exception case opened', detail: order.notes}],
+    };
+    if (index === 0) return record;
+
+    const audit = (minutes: number, title: string, detail?: string) => record.audit.push({
+      id: record.id + '-' + minutes, at: new Date(Date.parse(order.openedAt) + minutes * 60_000).toISOString(),
+      actor: 'Sarah Chen', title, detail,
+    });
+    record.investigation = {
+      id: '00000000-0000-4000-8000-00000000' + order.caseId.slice(3),
+      status: 'completed', reviewed: true,
+      result: {
+        rootCause: 'Warehouse fulfillment delay',
+        evidence: [{source: 'Warehouse Service', description: 'Outbound staging moved by 3 days after the Reno distribution center missed its dispatch cutoff.'}],
+        recommendedActions: [
+          {action: 'RESCHEDULE_DELIVERY', reason: 'Offer a confirmed carrier window after warehouse release.'},
+          {action: 'GOODWILL_CREDIT', reason: 'Consider a goodwill credit for the missed appointment.'},
+        ],
+        policyReferences: policies.filter(policy => ['DELIVERY-001', 'CREDIT-001'].includes(policy.policyId))
+          .map(({policyId, title}) => ({policyId, title})),
+      },
+    };
+    audit(1, 'AI investigation started');
+    audit(2, 'AI investigation completed', record.investigation.result?.rootCause);
+    audit(3, 'Recommendations reviewed');
+
+    const workflowId = '00000000-0000-4000-8001-00000000' + order.caseId.slice(3);
+    if (order.caseId === 'EX-2051') {
+      const reason = 'Missed original carrier appointment';
+      record.workflow = {
+        id: workflowId, selection: {action: 'GOODWILL_CREDIT', amount: 75, reason},
+        status: 'pending', checks: ['Order and payment confirmed', 'Credit is within the $150 case limit', 'Supervisor approval required'],
+      };
+      audit(4, 'Resolution action selected', 'Goodwill credit');
+      audit(5, 'Business validation completed');
+      audit(6, 'Supervisor approval requested', reason);
+    } else {
+      const slot = slots[1];
+      const summary = 'Delivery confirmed for ' + slot.label;
+      record.workflow = {
+        id: workflowId, selection: {action: 'RESCHEDULE_DELIVERY', slotId: slot.id, reason: 'Customer requested a later window'},
+        status: 'executed', checks: ['Order and payment confirmed', 'Carrier capacity and fulfillment release checked', 'Within agent authorization'],
+        execution: {reference: 'OMS-DEMO-2052', summary, slotId: slot.id},
+      };
+      record.status = 'Resolved';
+      audit(4, 'Resolution action selected', 'Reschedule delivery');
+      audit(5, 'Business validation completed');
+      audit(6, 'Resolution executed', summary);
+    }
+    return record;
+  })];
+}
 export const oms = {
   getOrder: async (orderId: string) => isDemoOrder(orderId) ? {
     orderId, placed: 'Nov 2, 2026', item: 'Toscana Extendable Dining Table', sku: 'PB-TSC-84-NAT',
