@@ -20,7 +20,7 @@ Open [the exception workspace](http://127.0.0.1:5173/). The command starts Vite,
 5. Open **Customer Response**, generate and edit the draft, confirm review, and send.
 6. Close the case and check the timeline. Reload the browser to confirm persistence.
 
-The queue also includes **EX-2050** (ready to investigate), **EX-2051** (awaiting supervisor approval), and **EX-2052** (resolved and ready for customer follow-up).
+The queue also includes **EX-2050** (ready to investigate), **EX-2051** (awaiting supervisor approval), **EX-2052** (resolved and ready for customer follow-up), and **EX-2053–EX-2056** (new, investigation ready for review, approval granted, and closed).
 
 To demo phone intake, select **Register call** on the queue, choose **PB-10246**, enter fictional call notes, and submit. This opens **EX-2049** for Sarah. The demo allows one case per order and reopens the existing case on repeat registration.
 

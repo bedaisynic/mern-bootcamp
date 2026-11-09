@@ -93,6 +93,10 @@ it('lists seeded cases at different stages and persists an approval on a seeded 
     expect.objectContaining({id: 'EX-2050', orderId: 'PB-10247', status: 'Open'}),
     expect.objectContaining({id: 'EX-2051', workflow: expect.objectContaining({status: 'pending'})}),
     expect.objectContaining({id: 'EX-2052', status: 'Resolved'}),
+    expect.objectContaining({id: 'EX-2053', status: 'Open'}),
+    expect.objectContaining({id: 'EX-2054', investigation: expect.objectContaining({status: 'completed', reviewed: false})}),
+    expect.objectContaining({id: 'EX-2055', workflow: expect.objectContaining({status: 'approved'})}),
+    expect.objectContaining({id: 'EX-2056', status: 'Closed', response: expect.objectContaining({sentAt: expect.any(String)})}),
   ]));
   const {body: pending} = await get(queuePath + '/EX-2051').expect(200);
   await request(app).post(queuePath + '/EX-2051/commands').set('x-internal-secret', internalSecret).send({

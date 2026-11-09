@@ -4,15 +4,27 @@ export const CASE_ID = 'EX-2048';
 export const ORDER_ID = 'PB-10245';
 const additionalOrders = [
   {orderId: 'PB-10247', caseId: 'EX-2050', customer: 'Maya Patel', email: 'maya.patel@example.com',
-    phone: '(415) 555-0143', openedAt: '2026-11-07T21:06:00.000Z',
+    phone: '(415) 555-0143', stage: 'open', openedAt: '2026-11-07T21:06:00.000Z',
     notes: 'Maya called after the original window passed and asked for the earliest available appointment.'},
   {orderId: 'PB-10248', caseId: 'EX-2051', customer: 'Lucas Reed', email: 'lucas.reed@example.com',
-    phone: '(415) 555-0172', openedAt: '2026-11-07T20:38:00.000Z',
+    phone: '(415) 555-0172', stage: 'pending', openedAt: '2026-11-07T20:38:00.000Z',
     notes: 'Lucas took time off for the missed appointment. Sarah requested approval for a $75 goodwill credit.'},
   {orderId: 'PB-10249', caseId: 'EX-2052', customer: 'Ava Nguyen', email: 'ava.nguyen@example.com',
-    phone: '(415) 555-0184', openedAt: '2026-11-07T20:24:00.000Z',
+    phone: '(415) 555-0184', stage: 'resolved', openedAt: '2026-11-07T20:24:00.000Z',
     notes: 'Ava asked for a later delivery window. The carrier confirmed a new appointment and Sarah can send the update.'},
-];
+  {orderId: 'PB-10250', caseId: 'EX-2053', customer: 'Ethan Brooks', email: 'ethan.brooks@example.com',
+    phone: '(415) 555-0137', stage: 'open', openedAt: '2026-11-07T21:34:00.000Z',
+    notes: 'Ethan did not receive a call from the carrier and wants to confirm whether the table is still on its way.'},
+  {orderId: 'PB-10251', caseId: 'EX-2054', customer: 'Sofia Rivera', email: 'sofia.rivera@example.com',
+    phone: '(415) 555-0118', stage: 'investigated', openedAt: '2026-11-07T21:22:00.000Z',
+    notes: 'Sofia asked what caused the missed delivery and whether she can choose a weekday appointment.'},
+  {orderId: 'PB-10252', caseId: 'EX-2055', customer: 'Oliver Park', email: 'oliver.park@example.com',
+    phone: '(415) 555-0164', stage: 'approved', openedAt: '2026-11-07T20:52:00.000Z',
+    notes: 'Oliver called after taking time off for the scheduled delivery and asked about compensation.'},
+  {orderId: 'PB-10253', caseId: 'EX-2056', customer: 'Isabella Rossi', email: 'isabella.rossi@example.com',
+    phone: '(415) 555-0156', stage: 'closed', openedAt: '2026-11-07T20:16:00.000Z',
+    notes: 'Isabella requested a morning appointment after her original delivery was canceled.'},
+] as const;
 export const intakeOrders = [
   {orderId: ORDER_ID, caseId: CASE_ID, customer: 'Emma Carter', email: 'emma.carter@example.com', phone: '(415) 555-0199'},
   {orderId: 'PB-10246', caseId: 'EX-2049', customer: 'Nora Wilson', email: 'nora.wilson@example.com', phone: '(415) 555-0126'},
@@ -47,21 +59,21 @@ export const policies: Policy[] = [
   {policyId:'APPROVAL-001', title:'Supervisor authorization', text:'Supervisor approval is required for full refunds, replacements, credits over $50, and requests for manager review.'},
 ];
 export function seedCases(): ResolutionCase[] {
-  return [seedCase(), ...additionalOrders.map((order, index) => {
+  return [seedCase(), ...additionalOrders.map(order => {
     const record: ResolutionCase = {
       ...seedCase(), id: order.caseId, orderId: order.orderId, customer: order.customer,
       openedAt: order.openedAt, exceptionDetails: order.notes,
       audit: [{id: 'opened', at: order.openedAt, actor: 'Sarah Chen', title: 'Exception case opened', detail: order.notes}],
     };
-    if (index === 0) return record;
+    if (order.stage === 'open') return record;
 
-    const audit = (minutes: number, title: string, detail?: string) => record.audit.push({
-      id: record.id + '-' + minutes, at: new Date(Date.parse(order.openedAt) + minutes * 60_000).toISOString(),
-      actor: 'Sarah Chen', title, detail,
+    const time = (minutes: number) => new Date(Date.parse(order.openedAt) + minutes * 60_000).toISOString();
+    const audit = (minutes: number, title: string, detail?: string, actor = 'Sarah Chen') => record.audit.push({
+      id: record.id + '-' + minutes, at: time(minutes), actor, title, detail,
     });
     record.investigation = {
       id: '00000000-0000-4000-8000-00000000' + order.caseId.slice(3),
-      status: 'completed', reviewed: true,
+      status: 'completed', reviewed: order.stage !== 'investigated',
       result: {
         rootCause: 'Warehouse fulfillment delay',
         evidence: [{source: 'Warehouse Service', description: 'Outbound staging moved by 3 days after the Reno distribution center missed its dispatch cutoff.'}],
@@ -74,31 +86,49 @@ export function seedCases(): ResolutionCase[] {
       },
     };
     audit(1, 'AI investigation started');
-    audit(2, 'AI investigation completed', record.investigation.result?.rootCause);
+    audit(2, 'AI investigation completed', record.investigation.result?.rootCause, 'AI investigation');
+    if (order.stage === 'investigated') return record;
     audit(3, 'Recommendations reviewed');
 
     const workflowId = '00000000-0000-4000-8001-00000000' + order.caseId.slice(3);
-    if (order.caseId === 'EX-2051') {
+    if (order.stage === 'pending' || order.stage === 'approved') {
+      const amount = order.stage === 'approved' ? 90 : 75;
       const reason = 'Missed original carrier appointment';
       record.workflow = {
-        id: workflowId, selection: {action: 'GOODWILL_CREDIT', amount: 75, reason},
-        status: 'pending', checks: ['Order and payment confirmed', 'Credit is within the $150 case limit', 'Supervisor approval required'],
+        id: workflowId, selection: {action: 'GOODWILL_CREDIT', amount, reason},
+        status: order.stage, checks: ['Order and payment confirmed', 'Credit is within the $150 case limit', 'Supervisor approval required'],
       };
       audit(4, 'Resolution action selected', 'Goodwill credit');
       audit(5, 'Business validation completed');
       audit(6, 'Supervisor approval requested', reason);
+      if (order.stage === 'approved') {
+        const note = 'Approved after reviewing the missed delivery window.';
+        record.workflow.approval = {by: 'Marcus Lee', decision: 'approved', note};
+        audit(7, 'Supervisor approval granted', note, 'Marcus Lee');
+      }
     } else {
-      const slot = slots[1];
+      const slot = order.stage === 'closed' ? slots[0] : slots[1];
       const summary = 'Delivery confirmed for ' + slot.label;
       record.workflow = {
         id: workflowId, selection: {action: 'RESCHEDULE_DELIVERY', slotId: slot.id, reason: 'Customer requested a later window'},
         status: 'executed', checks: ['Order and payment confirmed', 'Carrier capacity and fulfillment release checked', 'Within agent authorization'],
-        execution: {reference: 'OMS-DEMO-2052', summary, slotId: slot.id},
+        execution: {reference: 'OMS-DEMO-' + order.caseId.slice(3), summary, slotId: slot.id},
       };
       record.status = 'Resolved';
       audit(4, 'Resolution action selected', 'Reschedule delivery');
       audit(5, 'Business validation completed');
       audit(6, 'Resolution executed', summary);
+      if (order.stage === 'closed') {
+        const reference = 'MSG-' + order.caseId + '-DEMO';
+        record.response = {
+          text: 'Hi Isabella, your new delivery window is ' + slot.label + '. Thank you for your patience.',
+          reference, sentAt: time(8),
+        };
+        record.status = 'Closed';
+        audit(7, 'Customer response drafted');
+        audit(8, 'Customer notified', reference);
+        audit(9, 'Exception case closed');
+      }
     }
     return record;
   })];
