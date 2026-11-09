@@ -24,7 +24,7 @@ The queue also includes **EX-2050** (ready to investigate), **EX-2051** (awaitin
 
 To try the path without supervisor approval, select **Reschedule delivery** and choose an available window.
 
-The sidebar also includes **Dashboard**, **Orders**, **Inventory**, **Warehouse**, **Delivery**, **Reports**, and **Settings**. These views display operational data for the exception workspace. Case changes happen in **Exceptions**.
+The sidebar also includes **Dashboard**, **Orders**, **Inventory**, **Warehouse**, **Delivery**, **Reports**, and **Settings**. The operational views use a separate 30-day dataset. Orders, stock positions, outbound work, and shipments support read-only pagination. Dashboard and Reports aggregate that operational dataset. The order numbers used for call registration come from the separate intake catalog. Case changes happen in **Exceptions**.
 
 ## Test order lookup and address verification
 

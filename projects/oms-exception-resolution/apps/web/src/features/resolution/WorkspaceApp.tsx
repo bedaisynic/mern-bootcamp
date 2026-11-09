@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { lazy, Suspense, useState, type ReactNode } from 'react';
 import { Alert, Button, CircularProgress, MenuItem, TextField } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Activity, ArrowRight, BadgeCheck, ChevronRight, ClipboardCheck, Headphones, FileText, History, LayoutDashboard, Mail, Package, PanelTop, Settings, ShieldCheck, Sparkles, Truck, Warehouse } from 'lucide-react';
@@ -9,10 +9,12 @@ import { CASE_ID, type Workspace } from '@oms/oms-mock-adapters';
 import { errorMessage, loadQueue, loadWorkspace, sendCommand, signIn, useRole } from './api';
 import { ActionPanel, ApprovalPanel, CaseDetails, InvestigationPanel, OrderSummary, Overview, ResponsePanel, Tag, TimelinePanel } from './panels';
 import { ExceptionQueue } from './ExceptionQueue';
-import { OperationsPanel, type OperationsPath } from './OperationsPanels';
+import type { OperationsPath } from './OperationsPanels';
 import { RegisterCall } from './RegisterCall';
 import { casePath, intakePath, nextStep, queuePath, responseTarget } from './navigation';
 import s from './workspace.module.css';
+
+const OperationsPanel = lazy(() => import('./OperationsPanels'));
 
 const modules = [
   {label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard}, {label: 'Orders', path: '/orders', icon: Package},
@@ -77,7 +79,7 @@ export function WorkspaceApp() {
     refetchInterval: query => query.state.data?.investigation?.status === 'queued' ? 700 : false,
   });
   const queue = useQuery({
-    queryKey: ['queue', role], queryFn: () => loadQueue(token!), enabled: !!token && (viewingQueue || !!operationsPath),
+    queryKey: ['queue', role], queryFn: () => loadQueue(token!), enabled: !!token && viewingQueue,
   });
   const mutation = useMutation({
     mutationFn: ({command}: {command: Command; next?: string}) => sendCommand(token!, caseId!, command),
@@ -91,7 +93,7 @@ export function WorkspaceApp() {
   });
   const data = query.data;
   let content: ReactNode;
-  const activeQuery = viewingQueue || operationsPath ? queue : query;
+  const activeQuery = viewingQueue ? queue : query;
   if (!viewingQueue && !registering && !caseId && !operationsPath) {
     const legacy = tabs.find(tab => tab.view && pathname === '/' + tab.view);
     content = <Navigate to={legacy ? casePath(CASE_ID, legacy.view) : queuePath} replace />;
@@ -101,8 +103,10 @@ export function WorkspaceApp() {
     </Alert>;
   } else if (registering && session.data) {
     content = <RegisterCall actor={session.data.actor} token={session.data.token} />;
-  } else if (operationsPath && queue.data) {
-    content = <OperationsPanel path={operationsPath} cases={queue.data} role={role} />;
+  } else if (operationsPath && session.data) {
+    content = <Suspense fallback={<div role="status" className={s.loading}><CircularProgress size={24} /> Loading operations…</div>}>
+      <OperationsPanel path={operationsPath} role={role} />
+    </Suspense>;
   } else if (viewingQueue && queue.data) {
     content = <ExceptionQueue cases={queue.data} canRegister={role === 'agent'} />;
   } else if (!data || !caseId) {

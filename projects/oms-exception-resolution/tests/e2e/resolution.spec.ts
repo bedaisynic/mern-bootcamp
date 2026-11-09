@@ -136,16 +136,17 @@ test('registers a support call and opens the new case for the agent who took it'
 });
 
 
-test('opens each operations panel and keeps the primary workflow in Exceptions', async ({page}) => {
-  await page.goto('/exceptions');
+test('opens independent operations panels and keeps case actions in Exceptions', async ({page}) => {
+  await page.route('**/api/cases', route => route.abort());
+  await page.goto('/dashboard');
   const nav = page.getByRole('navigation', {name: 'OMS modules'});
   for (const [label, title, content] of [
-    ['Dashboard', 'Operations dashboard', 'Case status breakdown'],
+    ['Dashboard', 'Operations dashboard', 'Order volume'],
     ['Orders', 'Orders', 'Order records'],
-    ['Inventory', 'Inventory', 'Inventory by order'],
-    ['Warehouse', 'Warehouse', 'Fulfillment records'],
-    ['Delivery', 'Delivery', 'Delivery appointments'],
-    ['Reports', 'Reports', 'Resolution outcomes'],
+    ['Inventory', 'Inventory', 'Stock by location'],
+    ['Warehouse', 'Warehouse', 'Outbound work orders'],
+    ['Delivery', 'Delivery', 'Shipment tracking'],
+    ['Reports', 'Reports', 'Carrier performance'],
     ['Settings', 'Settings', 'Workspace profile'],
   ]) {
     const link = nav.getByRole('link', {name: label, exact: true});
@@ -153,9 +154,19 @@ test('opens each operations panel and keeps the primary workflow in Exceptions',
     await expect(link).toHaveAttribute('aria-current', 'page');
     await expect(page.getByRole('heading', {level: 1, name: title, exact: true})).toBeVisible();
     await expect(page.getByRole('heading', {name: content, exact: true})).toBeVisible();
-    await expect(page.getByRole('main').getByRole('button')).toHaveCount(0);
+    const main = page.getByRole('main');
+    if (['Orders', 'Inventory', 'Warehouse', 'Delivery'].includes(label)) {
+      const table = main.getByRole('table', {name: content});
+      await expect(table.getByRole('row')).toHaveCount(26);
+      await expect(main.getByText(/1–25 of [0-9,]+/)).toBeVisible();
+      await main.getByRole('button', {name: /next page/i}).click();
+      await expect(main.getByText(/26–50 of [0-9,]+/)).toBeVisible();
+    } else {
+      await expect(main.getByRole('button')).toHaveCount(0);
+    }
     await expect(page.locator('body')).not.toContainText(/\bdemo\b|fiction/i);
   }
+  await page.unroute('**/api/cases');
   await nav.getByRole('link', {name: 'Exceptions', exact: true}).click();
   await expect(page.getByRole('heading', {name: 'Exception queue'})).toBeVisible();
   await expect(page.getByRole('link', {name: 'Register call'})).toBeVisible();
