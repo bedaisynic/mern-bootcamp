@@ -43,6 +43,22 @@ Start the local application and open [Register call](http://127.0.0.1:5173/excep
 
 To repeat the new-case path from a clean local workspace, stop the app and run `npm run reset`, then `npm run dev`. Reset clears the local mock case history. To run only the intake browser test, stop the running application first and use `npm run test:e2e -- --grep 'registers a support call'` after installing Chromium as shown below.
 
+## Sign in with Okta
+
+1. In Okta Admin, create an **OIDC Single-Page Application** and enable **Authorization Code** and **Refresh Token**. Add `http://localhost:5173/login/callback` as the sign-in redirect URI and `http://localhost:5173/` as the sign-out redirect URI. Add `http://localhost:5173` under Trusted Origins for CORS and redirects. Open the workspace using that same origin. [Okta SPA setup](https://developer.okta.com/docs/guides/sign-into-spa-redirect/)
+2. Create two groups, `OMS-Agents` and `OMS-Supervisors`. Assign your test users to the corresponding groups and give those groups access to the SPA.
+3. Use an Okta **custom authorization server** (for example, `default`) with an API audience such as `api://oms-workspace`. Configure an access policy and rule allowing this client and its assigned users to use the Authorization Code and Refresh Token grants and request `openid profile email offline_access`. Add a `groups` claim to the **access token**, include it on all scopes, and filter groups with the regex `^(OMS-Agents|OMS-Supervisors)$`. The workspace uses Supervisor permissions when a user belongs to both groups. [Okta authorization servers](https://developer.okta.com/docs/concepts/api-access-management/) · [Okta groups claims](https://developer.okta.com/docs/guides/customize-tokens-groups-claim/)
+4. Copy `.env.example` to `.env`, or update your existing `.env`. Set the values below and restart the app. The SPA uses Authorization Code with PKCE and requires no client secret. [Okta Auth JS redirect flow](https://developer.okta.com/docs/guides/auth-js-redirect/main/)
+
+```dotenv
+AUTH_MODE=okta
+OKTA_ISSUER=https://your-okta-domain/oauth2/default
+OKTA_CLIENT_ID=your-spa-client-id
+OKTA_AUDIENCE=api://oms-workspace
+```
+
+Open [the workspace](http://localhost:5173/) and select **Sign in with Okta**. In Okta mode, role selection is managed in Okta and the local session endpoint is disabled. To try the approval flow, sign in as an Agent and register a case for an unused order, such as **PB-10258** (street number **214**, ZIP code **94114**). Submit an action that requires approval, sign in as a Supervisor to review it, then sign back in as the original Agent to continue. Existing cases keep their original owner.
+
 ## Run with PostgreSQL and Kafka
 
 Stop any existing local application processes first. Docker Compose runs PostgreSQL with pgvector, Redpanda, and the three backend applications. Each service runs its own Prisma migration at startup. EX-2048 is loaded lazily from its seed on first access.
@@ -73,7 +89,7 @@ Playwright starts an isolated mock stack. Stop any existing services on ports 41
 | Path | Contents |
 | --- | --- |
 | [apps/web](apps/web) | Exception queue and routed workspace views with MUI, React Query, Zustand, React Hook Form, and Zod |
-| [apps/bff](apps/bff) | Local authentication, request validation, Swagger, and service routing |
+| [apps/bff](apps/bff) | Local and Okta authentication, request validation, Swagger, and service routing |
 | [services/order-resolution-service](services/order-resolution-service) | Workflow, business checks, approvals, execution, audit, and outbox |
 | [services/ai-investigation-service](services/ai-investigation-service) | LangGraph, read-only tools, OpenAI, vector retrieval, and drafting |
 | [packages](packages) | Shared contracts, mock OMS adapters, server utilities, and Kafka transport |

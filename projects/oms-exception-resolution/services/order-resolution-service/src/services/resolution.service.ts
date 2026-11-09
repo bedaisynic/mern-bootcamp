@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { env, HttpError, internalRequest, log } from '@oms/server-kit';
 import { CASE_ID, demoIntake, getContext, intakeOrders, mockOperations, oms } from '@oms/oms-mock-adapters';
 import type { Command, IntakeInput } from '@oms/shared-schemas';
-import { actionLabels, type Actor, type FeatureEvent, type ResolutionCase } from '@oms/shared-types';
+import { actionLabels, isCaseOwner, type Actor, type FeatureEvent, type ResolutionCase } from '@oms/shared-types';
 import { readCase, changeCase, listCases, registerCase } from '../repositories/case.repository.js';
 import { requireVerifiedAddress } from './intake-order.service.js';
 import { validateAction } from './validation.service.js';
@@ -38,7 +38,7 @@ export async function registerCall(actor: Actor, input: IntakeInput) {
   const openedAt = new Date().toISOString();
   const result = await registerCase({
     id: order.caseId, orderId: order.orderId, customer: input.customerName, contactEmail: input.email, brand: 'Pottery Barn', issue: 'Delivery delay',
-    openedAt, status: 'Open', priority: 'High', assigned: actor.name, exceptionDetails: input.notes,
+    openedAt, status: 'Open', priority: 'High', assigned: actor.name, assignedId: actor.id, exceptionDetails: input.notes,
     audit: [{id: 'opened', at: openedAt, actor: actor.name, title: 'Exception case opened', detail: input.notes}],
   });
   return {id: result.record.id, created: result.created};
@@ -47,7 +47,7 @@ export async function applyCommand(id: string, actor: Actor, command: Command) {
   const requiredRole = command.type === 'approve' ? 'supervisor' : 'agent';
   if (actor.role !== requiredRole) throw new HttpError(403, 'This step requires the ' + requiredRole + ' role');
   await changeCase(id, async (record, emit) => {
-    if (actor.role === 'agent' && actor.name !== record.assigned) throw new HttpError(403, 'Only the handling agent can continue this case');
+    if (actor.role === 'agent' && !isCaseOwner(record, actor)) throw new HttpError(403, 'Only the handling agent can continue this case');
     const workflow = record.workflow;
     const investigation = record.investigation;
     if (command.type === 'execute' && workflow?.id === command.workflowId && workflow.status === 'executed') return;

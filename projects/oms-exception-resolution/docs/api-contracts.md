@@ -1,6 +1,6 @@
 # API contracts
 
-The browser uses the same-origin Vite proxy at `/api`. The BFF serves Swagger at `/api/docs` and the [OpenAPI document](openapi.json). Obtain a local session JWT from `POST /api/session` with `{"role":"agent"}` or `{"role":"supervisor"}`. Send it in an `Authorization: Bearer` header on workspace requests.
+The browser uses the same-origin Vite proxy at `/api`. The BFF serves Swagger at `/api/docs` and the [OpenAPI document](openapi.json). `GET /api/auth/config` returns the configured sign-in mode and, in Okta mode, the public issuer and SPA client ID. In local mode, obtain a session JWT from `POST /api/session` with `{"role":"agent"}` or `{"role":"supervisor"}`. In Okta mode, obtain an access token from the configured authorization server through the SPA sign-in flow. Send the token in an `Authorization: Bearer` header on workspace requests. `GET /api/auth/session` returns the authenticated actor and OMS role.
 
 `GET /api/intake/orders?q=...` returns up to 10 matching order summaries for an agent. `POST /api/intake/orders/{id}/verify` checks the delivery street number and ZIP code and returns the verified order with any existing case link.
 

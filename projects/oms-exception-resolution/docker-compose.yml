@@ -79,6 +79,12 @@ services:
     environment:
       <<: *service-env
       PORT: 4100
+      AUTH_MODE: ${AUTH_MODE:-local}
+      OKTA_ISSUER: ${OKTA_ISSUER:-}
+      OKTA_CLIENT_ID: ${OKTA_CLIENT_ID:-}
+      OKTA_AUDIENCE: ${OKTA_AUDIENCE:-}
+      OKTA_AGENT_GROUP: ${OKTA_AGENT_GROUP:-OMS-Agents}
+      OKTA_SUPERVISOR_GROUP: ${OKTA_SUPERVISOR_GROUP:-OMS-Supervisors}
       DEMO_AUTH: ${DEMO_AUTH:-true}
       JWT_SECRET: ${JWT_SECRET:-local-training-jwt-secret}
     ports:

@@ -41,7 +41,7 @@ Each backend uses `app.ts`, `server.ts`, Express routers, and thin controllers. 
 
 Local authentication issues two-hour HS256 JWTs for the two seeded identities. The BFF verifies issuer, audience, signature, and role shape. It forwards the authenticated actor over an internal route secured by a shared secret. The resolution service enforces role and state on each command. Only a supervisor may decide approval. Agent-only commands cover selection, execution, response and closure.
 
-A production OIDC integration would replace local sign-in, validate signed access tokens against provider JWKS, check issuer, audience, expiry and tenant, and map IdP groups to roles. It would also verify case ownership and replace shared-secret forwarding with service identity and short-lived signed actor context.
+In Okta mode, the browser uses Okta Auth JS with Authorization Code and PKCE. The BFF validates the access token signature using the custom authorization server's JWKS, checks issuer, API audience, expiry and client ID, then maps the signed `groups` claim to an OMS role. It derives an actor ID from the issuer and Okta user ID (`uid`). The resolution service uses that ID to enforce case ownership, so agents with the same display name cannot act on each other's cases. Supervisor approval stays separate from the agent's execution of the approved action.
 
 ## Execution boundaries
 

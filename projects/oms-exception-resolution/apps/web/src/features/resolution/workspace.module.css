@@ -185,3 +185,10 @@
   .orderSearch, .orderResults li, .addressFields { grid-template-columns: 1fr; }
   .orderSearch :global(.MuiButton-root), .orderResults :global(.MuiButton-root) { justify-self: start; min-height: 38px; }
 }
+.authPage { min-height: 100vh; display: grid; place-items: center; padding: 16px; }
+.authPage > section { width: min(100%, 440px); padding: 24px; }
+.authPage h1 { margin: 4px 0 10px; font-size: 26px; }
+.authPage p { color: #53647e; font-size: 14px; }
+.authPage :global(.MuiButton-root) { margin-top: 12px; }
+.accountIdentity { display: grid; }
+.accountIdentity small { color: #53647e; }

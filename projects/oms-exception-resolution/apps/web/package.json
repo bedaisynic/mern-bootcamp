@@ -12,6 +12,7 @@
     "@emotion/styled": "^11.14.1",
     "@hookform/resolvers": "^5.2.2",
     "@mui/material": "^7.3.4",
+    "@okta/okta-auth-js": "^7.14.5",
     "@oms/oms-mock-adapters": "*",
     "@oms/shared-schemas": "*",
     "@oms/shared-types": "*",

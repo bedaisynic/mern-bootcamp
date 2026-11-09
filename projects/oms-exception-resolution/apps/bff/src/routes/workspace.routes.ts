@@ -1,7 +1,9 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth.js';
-import { addressCheck, demoSession, exceptionQueue, orderSearch, registerCall, requireAgent, runCommand, workspace } from '../controllers/workspace.controller.js';
+import { addressCheck, authConfig, authenticatedSession, demoSession, exceptionQueue, orderSearch, registerCall, requireAgent, runCommand, workspace } from '../controllers/workspace.controller.js';
 export const router = Router();
+router.get('/auth/config', authConfig);
+router.get('/auth/session', authenticate, authenticatedSession);
 router.post('/session', demoSession);
 router.get('/intake/orders', authenticate, requireAgent, orderSearch);
 router.post('/intake/orders/:id/verify', authenticate, requireAgent, addressCheck);

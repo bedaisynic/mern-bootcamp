@@ -1,7 +1,7 @@
 import { useRef, useState, type ReactNode } from 'react';
 import { TablePagination } from '@mui/material';
 import { Activity, BarChart3, Boxes, ClipboardCheck, Clock3, FileText, Headphones, Package, ShieldCheck, Truck, Warehouse } from 'lucide-react';
-import { actors, type Actor } from '@oms/shared-types';
+import type { Actor } from '@oms/shared-types';
 import { booked, channels, dayAt, delivered, facilities, inventory, openWork, orders, periodStart, shipments, snapshotDate, warehouseWork } from './operations-data';
 import { Card, Tag } from './panels';
 import s from './operations.module.css';
@@ -193,12 +193,11 @@ function Reports() {
     </div>
   </>;
 }
-function SettingsPanel({role}: {role: Actor['role']}) {
-  const actor = actors[role];
+function SettingsPanel({actor}: {actor: Actor}) {
   return <div className={s.settings}>
     <Card title="Workspace profile" subtitle="Current session" icon={<Headphones size={19} />}>
       <dl className={s.fields}>
-        <div><dt>Name</dt><dd>{actor.name}</dd></div><div><dt>Role</dt><dd>{role === 'agent' ? 'Customer service agent' : 'Supervisor'}</dd></div>
+        <div><dt>Name</dt><dd>{actor.name}</dd></div><div><dt>Role</dt><dd>{actor.role === 'agent' ? 'Customer service agent' : 'Supervisor'}</dd></div>
         <div><dt>Workspace</dt><dd>Customer Care · Order Operations</dd></div>
       </dl>
     </Card>
@@ -219,11 +218,11 @@ function SettingsPanel({role}: {role: Actor['role']}) {
   </div>;
 }
 
-export default function OperationsPanel({path, role}: {path: OperationsPath; role: Actor['role']}) {
+export default function OperationsPanel({path, actor}: {path: OperationsPath; actor: Actor}) {
   const {title, description} = pages[path];
   const content = {
     '/dashboard': <Dashboard />, '/orders': <Orders />, '/inventory': <Inventory />, '/warehouse': <WarehousePanel />,
-    '/delivery': <Delivery />, '/reports': <Reports />, '/settings': <SettingsPanel role={role} />,
+    '/delivery': <Delivery />, '/reports': <Reports />, '/settings': <SettingsPanel actor={actor} />,
   };
   return <div className={w.stack}>
     <header className={w.pageHeading}>

@@ -23,6 +23,19 @@
     }
   },
   "paths": {
+    "/auth/config": {
+      "get": {
+        "summary": "Read public sign-in configuration",
+        "responses": {"200": {"description": "Local mode or Okta mode with issuer and SPA client ID"}}
+      }
+    },
+    "/auth/session": {
+      "get": {
+        "summary": "Read the authenticated actor and workspace role",
+        "security": [{"bearer": []}],
+        "responses": {"200": {"description": "Authenticated actor"}, "401": {"description": "Invalid access token"}, "403": {"description": "Workspace role required"}}
+      }
+    },
     "/session": {
       "post": {
         "summary": "Sign in as a seeded role",

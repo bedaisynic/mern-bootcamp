@@ -7,12 +7,16 @@ import type { Workspace } from '@oms/oms-mock-adapters';
 const api = axios.create({baseURL: '/api', timeout: 40_000});
 const base = '/cases';
 const caseApi = (id: string) => base + '/' + encodeURIComponent(id);
-type Session = {actor: Actor; token: string};
+export type Session = {actor: Actor; token: string};
+export type WorkspaceAuthConfig = {mode: 'local'} | {mode: 'okta'; issuer: string; clientId: string};
+export const loadAuthConfig = async () => (await api.get<WorkspaceAuthConfig>('/auth/config')).data;
 export const useRole = create<{role: Actor['role']; setRole: (role: Actor['role']) => void}>(set => ({
   role: 'agent', setRole: role => set({role}),
 }));
 export const signIn = async (role: Actor['role']) => (await api.post<Session>('/session', {role})).data;
 const authorize = (token: string) => ({headers: {Authorization: 'Bearer ' + token}});
+export const loadAuthenticatedActor = async (token: string) =>
+  (await api.get<{actor: Actor}>('/auth/session', authorize(token))).data.actor;
 export const searchOrders = async (token: string, query: string) =>
   (await api.get<IntakeOrderMatch[]>('/intake/orders', {...authorize(token), params: {q: query}})).data;
 export const verifyAddress = async (token: string, orderId: string, input: AddressVerification) =>

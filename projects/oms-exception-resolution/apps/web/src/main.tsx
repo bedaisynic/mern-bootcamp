@@ -2,7 +2,7 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { CssBaseline, ThemeProvider, createTheme } from '@mui/material';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { WorkspaceApp } from './features/resolution/WorkspaceApp';
+import { AuthenticatedWorkspace } from './features/resolution/AuthenticatedWorkspace';
 
 const theme = createTheme({
   palette: {primary: {main: '#245bda'}, text: {primary: '#15223b', secondary: '#52627a'}, background: {default: '#f3f6fb'}},
@@ -16,6 +16,6 @@ const theme = createTheme({
 const client = new QueryClient({defaultOptions: {queries: {retry: 1, staleTime: 4000}}});
 createRoot(document.getElementById('root')!).render(
   <ThemeProvider theme={theme}><CssBaseline />
-    <QueryClientProvider client={client}><BrowserRouter><WorkspaceApp /></BrowserRouter></QueryClientProvider>
+    <QueryClientProvider client={client}><BrowserRouter><AuthenticatedWorkspace /></BrowserRouter></QueryClientProvider>
   </ThemeProvider>,
 );

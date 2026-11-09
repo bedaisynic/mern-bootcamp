@@ -79,9 +79,9 @@ it('registers a single case per demo order and enforces agent ownership', async 
   expect(results.map(result => result.status).sort()).toEqual([200, 201]);
   expect(results.map(result => result.body.id)).toEqual(['EX-2049', 'EX-2049']);
   const {body: cases} = await request(app).get('/internal/cases').set('x-internal-secret', internalSecret).expect(200);
-  expect(cases).toContainEqual(expect.objectContaining({id: 'EX-2049', assigned: actors.agent.name, customer: 'Nora W.', intake: expect.objectContaining({email: 'nora.confirmed@example.com'})}));
+  expect(cases).toContainEqual(expect.objectContaining({id: 'EX-2049', assigned: actors.agent.name, assignedId: actors.agent.id, customer: 'Nora W.', intake: expect.objectContaining({email: 'nora.confirmed@example.com'})}));
   await request(app).post('/internal/cases/EX-2049/commands').set('x-internal-secret', internalSecret)
-    .send({actor: {...actors.agent, id: 'different', name: 'Another agent'}, command: {type: 'investigate'}}).expect(403);
+    .send({actor: {...actors.agent, id: 'different'}, command: {type: 'investigate'}}).expect(403);
 });
 
 

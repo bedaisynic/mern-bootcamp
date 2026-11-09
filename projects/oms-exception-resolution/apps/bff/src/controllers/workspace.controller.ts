@@ -1,11 +1,11 @@
 import type { RequestHandler } from 'express';
 import { addressVerificationSchema, commandSchema, intakeSchema, orderLookupSchema, roleSchema } from '@oms/shared-schemas';
 import { HttpError } from '@oms/server-kit';
-import { signSession } from '../middleware/auth.js';
+import { publicAuthConfig, signSession } from '../middleware/auth.js';
 import { commandCase, createCase, findOrders, getCase, listQueue, verifyOrder } from '../services/workspace.service.js';
 
 export const demoSession: RequestHandler = (req, res) => {
-  res.json(signSession(roleSchema.parse(req.body?.role)));
+  res.set('Cache-Control', 'no-store').json(signSession(roleSchema.parse(req.body?.role)));
 };
 export const workspace: RequestHandler<{id: string}> = async (req, res) => {
   res.json(await getCase(req.params.id));
@@ -31,4 +31,11 @@ export const orderSearch: RequestHandler = async (req, res) => {
 };
 export const addressCheck: RequestHandler<{id: string}> = async (req, res) => {
   res.json(await verifyOrder(req.params.id, addressVerificationSchema.parse(req.body)));
+};
+
+export const authConfig: RequestHandler = (_req, res) => {
+  res.set('Cache-Control', 'no-store').json(publicAuthConfig);
+};
+export const authenticatedSession: RequestHandler = (_req, res) => {
+  res.set('Cache-Control', 'no-store').json({actor: res.locals.actor});
 };

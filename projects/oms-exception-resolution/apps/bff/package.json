@@ -12,6 +12,7 @@
     "@oms/shared-schemas": "*",
     "@oms/shared-types": "*",
     "express": "^5.1.0",
+    "jose": "^6.2.17",
     "jsonwebtoken": "^9.0.2",
     "swagger-ui-express": "^5.0.1"
   }

@@ -41,11 +41,15 @@ export type AuditEntry = { id: string; at: string; actor: string; title: string;
 export type ResolutionCase = {
   id: string; orderId: string; customer: string; brand: string; issue: string; openedAt: string;
   status: 'Open' | 'Resolved' | 'Closed'; priority: 'High'; assigned: string; exceptionDetails: string;
-  contactEmail?: string;
+  contactEmail?: string; assignedId?: string;
   investigation?: Investigation; workflow?: Workflow;
   response?: { text: string; sentAt?: string; reference?: string };
   audit: AuditEntry[];
 };
+export function isCaseOwner(record: ResolutionCase, actor: Actor): boolean {
+  const owner = record.assignedId ?? (record.assigned === actors.agent.name ? actors.agent.id : undefined);
+  return owner === actor.id;
+}
 export const TOPICS = ['investigation.requested', 'investigation.completed', 'investigation.failed', 'resolution.approved', 'resolution.completed', 'resolution.failed'] as const;
 export type Topic = typeof TOPICS[number];
 export type FeatureEvent = {
