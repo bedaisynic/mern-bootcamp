@@ -1,8 +1,16 @@
 import { z } from 'zod';
 import { ACTIONS, ROLES } from '@oms/shared-types';
 
+export const orderLookupSchema = z.string().trim().min(3, 'Enter at least 3 characters to search').max(100);
+export const addressVerificationSchema = z.object({
+  streetNumber: z.string().trim().regex(/^\d{1,8}[a-z]?$/i, 'Enter the delivery street number'),
+  postalCode: z.string().trim().regex(/^\d{5}(?:-\d{4})?$/, 'Enter a valid US ZIP code'),
+});
+export type AddressVerification = z.infer<typeof addressVerificationSchema>;
+
 export const intakeSchema = z.object({
   orderId: z.string().trim().min(1, 'Select a demo order').max(30),
+  addressVerification: addressVerificationSchema,
   customerName: z.string().trim().min(1, 'Enter the customer name').max(100),
   email: z.string().trim().max(254).email('Enter a valid email address'),
   notes: z.string().trim().min(10, 'Enter at least 10 characters').max(500, 'Use 500 characters or fewer'),

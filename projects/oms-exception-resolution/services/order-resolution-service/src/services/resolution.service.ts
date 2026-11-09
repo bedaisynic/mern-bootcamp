@@ -4,6 +4,7 @@ import { CASE_ID, demoIntake, getContext, intakeOrders, mockOperations, oms } fr
 import type { Command, IntakeInput } from '@oms/shared-schemas';
 import { actionLabels, type Actor, type FeatureEvent, type ResolutionCase } from '@oms/shared-types';
 import { readCase, changeCase, listCases, registerCase } from '../repositories/case.repository.js';
+import { requireVerifiedAddress } from './intake-order.service.js';
 import { validateAction } from './validation.service.js';
 
 function audit(record: ResolutionCase, actor: string, title: string, detail?: string) {
@@ -33,8 +34,7 @@ export async function queue() {
 }
 export async function registerCall(actor: Actor, input: IntakeInput) {
   if (actor.role !== 'agent') throw new HttpError(403, 'Only the agent taking the call can register it');
-  const order = intakeOrders.find(candidate => candidate.orderId === input.orderId);
-  if (!order) throw new HttpError(404, 'Demo order was not found');
+  const {order} = requireVerifiedAddress(input.orderId, input.addressVerification);
   const openedAt = new Date().toISOString();
   const result = await registerCase({
     id: order.caseId, orderId: order.orderId, customer: input.customerName, contactEmail: input.email, brand: 'Pottery Barn', issue: 'Delivery delay',

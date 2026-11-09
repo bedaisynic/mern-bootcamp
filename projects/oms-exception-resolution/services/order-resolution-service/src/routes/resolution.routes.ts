@@ -1,8 +1,10 @@
 import { Router } from 'express';
 import { internalOnly } from '@oms/server-kit';
-import { getQueue, getWorkspace, postCommand, postEvent, postRegistration } from '../controllers/resolution.controller.js';
+import { getQueue, getWorkspace, postCommand, postEvent, postRegistration, searchOrders, verifyOrderAddress } from '../controllers/resolution.controller.js';
 export const router = Router();
 router.use(internalOnly);
+router.get('/intake/orders', searchOrders);
+router.post('/intake/orders/:id/verify', verifyOrderAddress);
 router.get('/cases', getQueue);
 router.post('/cases', postRegistration);
 router.get('/cases/:id', getWorkspace);

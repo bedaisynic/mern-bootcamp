@@ -33,6 +33,7 @@ export const intakeOrders = [
   {orderId: 'PB-10255', caseId: 'EX-2058', customer: 'Amelia Torres', email: 'amelia.torres@example.com', phone: '(415) 555-0149'},
   {orderId: 'PB-10256', caseId: 'EX-2059', customer: 'Noah Bennett', email: 'noah.bennett@example.com', phone: '(415) 555-0136'},
   {orderId: 'PB-10257', caseId: 'EX-2060', customer: 'Chloe Kim', email: 'chloe.kim@example.com', phone: '(415) 555-0161'},
+  {orderId: 'PB-10258', caseId: 'EX-2061', customer: 'Liam Mitchell', email: 'liam.mitchell@example.com', phone: '(415) 555-0124'},
 ];
 const isDemoOrder = (id: string) => intakeOrders.some(order => order.orderId === id);
 export const demoIntake = {
@@ -139,7 +140,7 @@ export function seedCases(): ResolutionCase[] {
 }
 export const oms = {
   getOrder: async (orderId: string) => isDemoOrder(orderId) ? {
-    orderId, placed: 'Nov 2, 2026', item: 'Toscana Extendable Dining Table', sku: 'PB-TSC-84-NAT',
+    orderId, placed: orderId === 'PB-10258' ? 'Oct 29, 2026' : 'Nov 2, 2026', item: 'Toscana Extendable Dining Table', sku: 'PB-TSC-84-NAT',
     quantity: 1, total: 1899, payment: 'Captured', refundEligible: true, channel: 'Online',
   } : null,
   getInventory: async (sku: string) => sku === 'PB-TSC-84-NAT' ? {
@@ -150,7 +151,7 @@ export const oms = {
     fact: 'Outbound staging moved by 3 days after the Reno distribution center missed its dispatch cutoff.',
   } : null,
   getDelivery: async (orderId: string) => isDemoOrder(orderId) ? {
-    status: 'Appointment missed', original: 'Nov 7 · 9:00 AM–12:00 PM',
+    status: 'Appointment missed', original: orderId === 'PB-10258' ? 'Nov 8 · 1:00–4:00 PM' : 'Nov 7 · 9:00 AM–12:00 PM',
     fact: 'The carrier canceled the original appointment because the item missed outbound staging.', slots,
   } : null,
   getPolicies: async () => policies,
@@ -186,3 +187,6 @@ export const mockOperations = {
     return {reference: 'MSG-' + caseId + '-' + workflowId.slice(0, 8), text};
   },
 };
+
+
+export { deliveryAddresses } from './intake-addresses.js';

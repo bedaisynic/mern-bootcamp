@@ -22,9 +22,24 @@ Open [the exception workspace](http://127.0.0.1:5173/). The command starts Vite,
 
 The queue also includes **EX-2050** (ready to investigate), **EX-2051** (awaiting supervisor approval), **EX-2052** (resolved and ready for customer follow-up), and **EX-2053–EX-2056** (new, investigation ready for review, approval granted, and closed).
 
-To demo phone intake, select **Register call** on the queue, look for **Orders without cases**, choose a fresh order such as **PB-10254–PB-10257**, and submit fictional call notes. The selected order appears in the exception queue after registration. The demo allows one case per order and reopens the existing case on repeat registration.
+To demo the path without supervisor approval, select **Reschedule delivery** and choose an available window.
 
-To demo the path without supervisor approval, select **Reschedule delivery** and choose an available window. Stop the local processes and run `npm run reset` to reopen the case from its seed.
+## Test order lookup and address verification
+
+Start the mock demo and open [Register call](http://127.0.0.1:5173/exceptions/new) as **Agent · Sarah Chen**. All names and addresses below are fictional fixtures.
+
+| Scenario | Order to select | Street number | ZIP code | Expected result |
+| --- | --- | --- | --- | --- |
+| Create a case for Liam Mitchell | `PB-10254` | `214` | `94114` | **Create exception case** opens `EX-2057` |
+| Try an address mismatch for Liam | `PB-10254` | `215` | `94114` | Mismatch message. The form stays on address verification. |
+| Open Emma Carter's existing case | `PB-10245` | `128` | `94110` | **Open existing case** opens `EX-2048` |
+
+1. In **Find order**, search for `liam.mitchell@example.com` or `(415) 555-0124`. The results show **PB-10254** and **PB-10258**. Use the order number and date to select **PB-10254**.
+2. In **Verify address**, enter the street number and ZIP code. Try the mismatch in the table, then correct the street number to **214**. Successful verification displays the full delivery address and pre-fills the contact fields.
+3. Enter at least 10 characters in **Call notes**, such as “Customer reported that the delivery window passed.” Click **Create exception case**. The workspace opens **EX-2057**, and the case now appears in **Exceptions**.
+4. Repeat lookup and verification for **PB-10254**, or use **PB-10245** with Emma's details. The final screen offers **Open existing case**.
+
+To repeat the new-case path from a clean local demo, stop the app and run `npm run reset`, then `npm run dev`. Reset clears the local mock case history. To run only the intake browser test, stop the running demo first and use `npm run test:e2e -- --grep 'registers a support call'` after installing Chromium as shown below.
 
 ## Run with PostgreSQL and Kafka
 

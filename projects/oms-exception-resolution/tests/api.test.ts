@@ -71,7 +71,7 @@ it('deduplicates investigation results, enforces approval and serializes executi
 
 it('registers a single case per demo order and enforces agent ownership', async () => {
   const register = (actor = actors.agent, notes = 'Customer reported a missed delivery.', email = 'nora.confirmed@example.com') => request(app)
-    .post('/internal/cases').set('x-internal-secret', internalSecret).send({actor, input: {orderId: 'PB-10246', customerName: 'Nora W.', email, notes}});
+    .post('/internal/cases').set('x-internal-secret', internalSecret).send({actor, input: {orderId: 'PB-10246', addressVerification: {streetNumber: '362', postalCode: '94402'}, customerName: 'Nora W.', email, notes}});
   await register(actors.supervisor).expect(403);
   await register(actors.agent, 'Short').expect(400);
   await register(actors.agent, 'Customer reported a missed delivery.', 'invalid-email').expect(400);
@@ -109,4 +109,25 @@ it('lists seeded cases at different stages and persists an approval on a seeded 
   ]);
   const {body: resolved} = await get(queuePath + '/EX-2052').expect(200);
   expect(resolved.context.delivery.status).toBe('Rescheduled');
+});
+
+
+it('finds orders by customer details and requires matching address data before registering', async () => {
+  const auth = {'x-internal-secret': internalSecret};
+  const lookup = '/internal/intake/orders';
+  const {body: results} = await request(app).get(lookup).set(auth).query({q: '(415) 555-0124'}).expect(200);
+  expect(results.map((result: {orderId: string}) => result.orderId)).toEqual(['PB-10254', 'PB-10258']);
+  expect(results[0]).not.toHaveProperty('address');
+  expect(results[0]).not.toHaveProperty('email');
+  const addressVerification = {streetNumber: '214', postalCode: '94114'};
+  const wrongAddress = {...addressVerification, streetNumber: '215'};
+  await request(app).post(lookup + '/PB-10254/verify').set(auth).send(wrongAddress).expect(422);
+  const {body: verified} = await request(app).post(lookup + '/PB-10254/verify').set(auth).send(addressVerification).expect(200);
+  expect(verified).toMatchObject({address: '214 Cedar Lane, San Francisco, CA 94114', email: 'liam.mitchell@example.com'});
+  expect(verified).not.toHaveProperty('caseId');
+  await request(app).post('/internal/cases').set(auth).send({
+    actor: actors.agent, input: {orderId: 'PB-10254', addressVerification: wrongAddress,
+      customerName: 'Liam Mitchell', email: 'liam.mitchell@example.com', notes: 'Missed delivery reported by customer.'},
+  }).expect(422);
+  await request(app).get('/internal/cases/EX-2057').set(auth).expect(404);
 });

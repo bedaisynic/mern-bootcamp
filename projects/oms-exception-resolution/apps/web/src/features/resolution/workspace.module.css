@@ -167,3 +167,18 @@
 .queueHeading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
 .queueHeading .pageHeading { margin-bottom: 0; }
 .intakePage { max-width: 720px; }
+.intakeStepper { background: #fff; border: 1px solid #e0e7f2; border-radius: 10px; margin: 16px 0; padding: 14px 4px; }
+.intakeStepper :global(.MuiStepLabel-label) { font-size: 12px; }
+.orderSearch { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: start; }
+.orderSearch :global(.MuiButton-root) { min-height: 56px; white-space: nowrap; }
+.orderResults { margin-top: 15px; }
+.orderResults ul { display: grid; gap: 8px; list-style: none; margin: 9px 0 0; padding: 0; }
+.orderResults li { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 10px; border: 1px solid #e0e7f2; border-radius: 8px; }
+.intakeSummary { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; justify-content: space-between; color: #15223b; font-size: 13px; }
+.intakeSummary div > span { display: block; color: #53647e; font-size: 12px; margin-top: 3px; }
+.addressFields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.verifiedAddress { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0; color: #53647e; font-size: 13px; }
+@media (max-width: 520px) {
+  .orderSearch, .orderResults li, .addressFields { grid-template-columns: 1fr; }
+  .orderSearch :global(.MuiButton-root), .orderResults :global(.MuiButton-root) { justify-self: start; min-height: 38px; }
+}

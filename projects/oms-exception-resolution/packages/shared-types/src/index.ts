@@ -10,6 +10,8 @@ export const actors: Record<Actor['role'], Actor> = {
   agent: {id: 'sarah', name: 'Sarah Chen', role: 'agent'},
   supervisor: {id: 'marcus', name: 'Marcus Lee', role: 'supervisor'},
 };
+export type IntakeOrderMatch = {orderId: string; customer: string; item: string; placed: string; deliveryStatus: string};
+export type VerifiedIntakeOrder = IntakeOrderMatch & {email: string; address: string; caseId?: string};
 export type ActionInput = { action: Action; slotId?: string; amount?: number; reason: string };
 export type PolicyReference = { policyId: string; title: string };
 export type Evidence = { source: string; description: string };

@@ -1,7 +1,8 @@
 import type { RequestHandler } from 'express';
-import { commandSchema, intakeSchema, roleSchema } from '@oms/shared-schemas';
+import { addressVerificationSchema, commandSchema, intakeSchema, orderLookupSchema, roleSchema } from '@oms/shared-schemas';
+import { HttpError } from '@oms/server-kit';
 import { signSession } from '../middleware/auth.js';
-import { commandCase, createCase, getCase, listQueue } from '../services/workspace.service.js';
+import { commandCase, createCase, findOrders, getCase, listQueue, verifyOrder } from '../services/workspace.service.js';
 
 export const demoSession: RequestHandler = (req, res) => {
   res.json(signSession(roleSchema.parse(req.body?.role)));
@@ -19,4 +20,15 @@ export const exceptionQueue: RequestHandler = async (_req, res) => {
 export const registerCall: RequestHandler = async (req, res) => {
   const result = await createCase(res.locals.actor, intakeSchema.parse(req.body));
   res.status(result.created ? 201 : 200).json(result);
+};
+
+export const requireAgent: RequestHandler = (_req, res, next) => {
+  if (res.locals.actor.role !== 'agent') throw new HttpError(403, 'Only an agent can register a call');
+  next();
+};
+export const orderSearch: RequestHandler = async (req, res) => {
+  res.json(await findOrders(orderLookupSchema.parse(req.query.q)));
+};
+export const addressCheck: RequestHandler<{id: string}> = async (req, res) => {
+  res.json(await verifyOrder(req.params.id, addressVerificationSchema.parse(req.body)));
 };
