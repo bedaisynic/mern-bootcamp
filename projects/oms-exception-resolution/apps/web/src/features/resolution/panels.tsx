@@ -232,7 +232,7 @@ export function ApprovalPanel({data, busy, role, run}: PanelProps) {
         {!workflow.approval && workflow.status !== 'pending' && <Alert severity="info">This action is within agent authorization.</Alert>}
       </div>
       {workflow.status === 'pending' && (role === 'agent'
-        ? <Alert sx={{mt: 2}} severity="warning">Awaiting approval. Use the Supervisor demo role to record the decision, then switch back to Agent to continue.</Alert>
+        ? <Alert sx={{mt: 2}} severity="warning">Awaiting supervisor approval.</Alert>
         : <div className={s.form}>
           <TextField fullWidth multiline minRows={2} label="Supervisor decision notes" value={note} onChange={event => setNote(event.target.value)} />
           <div className={s.buttonRow}>

@@ -41,7 +41,7 @@ test('investigates, approves a $75 credit, executes, reviews the reply and close
   await expect(page.getByText('Awaiting approval', {exact: true})).toBeVisible();
   await expect(page.getByRole('button', {name: 'Execute resolution'})).toHaveCount(0);
   await page.getByRole('link', {name: 'Open approval workflow'}).click();
-  await expect(page.getByText('Awaiting approval. Use the Supervisor', {exact: false})).toBeVisible();
+  await expect(page.getByRole('alert')).toHaveText('Awaiting supervisor approval.');
   await selectRole('Supervisor · Marcus Lee');
   await page.getByRole('textbox', {name: 'Supervisor decision notes'}).fill('Approved for the documented delay');
   await page.getByRole('button', {name: 'Approve action'}).click();
