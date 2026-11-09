@@ -35,13 +35,13 @@ sequenceDiagram
   UI->>BFF: Poll workspace until final state
 ```
 
-Each backend uses `app.ts`, `server.ts`, Express routers, and thin controllers. Shared server utilities supply JSON errors, internal request authentication, logging, and the file demo repository. Application services own transition rules. Prisma repositories own transactions and query construction. The BFF delegates commands and returns the aggregated workspace.
+Each backend uses `app.ts`, `server.ts`, Express routers, and thin controllers. Shared server utilities supply JSON errors, internal request authentication, logging, and the local file repository. Application services own transition rules. Prisma repositories own transactions and query construction. The BFF delegates commands and returns the aggregated workspace.
 
 ## Identity
 
-Demo mode issues two-hour HS256 JWTs for the two seeded identities. The BFF verifies issuer, audience, signature, and role shape. It forwards the authenticated actor over an internal route secured by a shared secret. The resolution service enforces role and state on each command. Only a supervisor may decide approval. Agent-only commands cover selection, execution, response and closure.
+Local authentication issues two-hour HS256 JWTs for the two seeded identities. The BFF verifies issuer, audience, signature, and role shape. It forwards the authenticated actor over an internal route secured by a shared secret. The resolution service enforces role and state on each command. Only a supervisor may decide approval. Agent-only commands cover selection, execution, response and closure.
 
-A production OIDC integration would disable demo sign-in, validate signed access tokens against provider JWKS, check issuer, audience, expiry and tenant, and map IdP groups to roles. It would also verify case ownership and replace shared-secret forwarding with service identity and short-lived signed actor context.
+A production OIDC integration would replace local sign-in, validate signed access tokens against provider JWKS, check issuer, audience, expiry and tenant, and map IdP groups to roles. It would also verify case ownership and replace shared-secret forwarding with service identity and short-lived signed actor context.
 
 ## Execution boundaries
 

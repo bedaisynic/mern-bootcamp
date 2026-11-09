@@ -6,8 +6,10 @@
 .brand small, .sidebarLabel { color: #9aadd0; letter-spacing: .12em; font-size: 9px; font-weight: 800; }
 .sidebarLabel { margin: 0 10px 10px; }
 .sidebar nav { display: grid; gap: 4px; }
-.sidebar nav button, .activeModule { display: flex; align-items: center; gap: 10px; min-height: 40px; text-align: left; border: 0; border-radius: 7px; padding: 8px 10px; font: inherit; font-size: 13px; }
-.sidebar nav button { background: transparent; color: #a1afca; }
+.moduleLink { display: flex; align-items: center; gap: 10px; min-height: 40px; text-align: left; border: 0; border-radius: 7px; padding: 8px 10px; font: inherit; font-size: 13px; }
+.moduleLink { color: #b5c2da; text-decoration: none; }
+.moduleLink:hover { background: #1b2c4b; color: #fff; }
+.mobileNavigation { display: none; }
 .activeModule { background: #233f77; color: #fff; text-decoration: none; font-weight: 700; box-shadow: inset 3px 0 #6b9bff; }
 .sidebarFoot { margin-top: auto; padding: 16px 7px 0; display: flex; gap: 10px; border-top: 1px solid #283753; color: #a6b6d2; }
 .sidebarFoot strong, .sidebarFoot small { display: block; font-size: 11px; }
@@ -19,7 +21,6 @@
 .breadcrumb strong { color: #162642; }
 .account :global(.MuiInputBase-root) { font-size: 13px; min-width: 176px; }
 .account :global(.MuiInputLabel-root) { font-size: 13px; }
-.demo { color: #43619a; font-size: 10px; font-weight: 800; background: #ecf2ff; border: 1px solid #dce6fb; border-radius: 5px; padding: 3px 6px; letter-spacing: .08em; }
 .avatar { color: #2454ad; background: #e7efff; font-weight: 800; border-radius: 50%; width: 34px; height: 34px; display: grid; place-items: center; font-size: 11px; }
 .main { padding: 24px 28px 38px; max-width: 1600px; margin: auto; }
 .hero { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; background: #fff; border: 1px solid #e0e7f2; border-radius: 12px; padding: 22px; }
@@ -85,6 +86,8 @@
 @media (max-width: 690px) {
   .layout { grid-template-columns: 1fr; }
   .sidebar { display: none; }
+  .mobileNavigation { display: flex; gap: 4px; padding: 5px 10px; background: #101b32; overflow-x: auto; }
+  .mobileNavigation .moduleLink { white-space: nowrap; flex-shrink: 0; }
   .topbar { flex-wrap: wrap; }
   .main { padding: 12px; }
   .hero { padding: 15px; }

@@ -25,9 +25,9 @@
   "paths": {
     "/session": {
       "post": {
-        "summary": "Sign in as a seeded demo role",
+        "summary": "Sign in as a seeded role",
         "requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["role"],"properties":{"role":{"enum":["agent","supervisor"]}}}}}},
-        "responses":{"200":{"description":"Signed JWT and actor"},"400":{"description":"Unknown demo role"},"404":{"description":"Demo authentication disabled"}}
+        "responses":{"200":{"description":"Signed JWT and actor"},"400":{"description":"Unknown role"},"404":{"description":"Workspace sign-in is unavailable"}}
       }
     },
     "/intake/orders": {
@@ -60,7 +60,7 @@
           "type": "object", "required": ["orderId", "addressVerification", "customerName", "email", "notes"],
           "properties": {"orderId": {"type": "string", "example": "PB-10254"}, "addressVerification": {"$ref": "#/components/schemas/AddressVerification"}, "customerName": {"type": "string", "maxLength": 100}, "email": {"type": "string", "format": "email"}, "notes": {"type": "string", "minLength": 10, "maxLength": 500}}
         }}}},
-        "responses": {"201": {"description": "Registered case ID"}, "200": {"description": "Existing case ID"}, "400": {"description": "Invalid intake"}, "403": {"description": "Agent role required"}, "404": {"description": "Unknown demo order"}}
+        "responses": {"201": {"description": "Registered case ID"}, "200": {"description": "Existing case ID"}, "400": {"description": "Invalid intake"}, "403": {"description": "Agent role required"}, "404": {"description": "Order not found"}}
       }
     },
     "/cases/{id}": {

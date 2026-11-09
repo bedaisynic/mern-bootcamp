@@ -1,6 +1,6 @@
 # Workspace flow
 
-Emma Carter calls customer support about a missed delivery. Sarah Chen takes the call, logs the exception against order PB-10245, and opens EX-2048 to handle it herself. A supervisor makes approval decisions when required, and Sarah continues handling the case afterward. EX-2048 starts with a seeded intake. Select **Register call** on the queue to enter a missed delivery for demo order PB-10246. The form opens EX-2049 directly for the agent who took the call. The customer receives the reviewed response through the simulated notification service.
+Emma Carter calls customer support about a missed delivery. Sarah Chen takes the call, logs the exception against order PB-10245, and opens EX-2048 to handle it herself. A supervisor makes approval decisions when required, and Sarah continues handling the case afterward. EX-2048 starts with a seeded intake. Select **Register call** to find an order, verify its delivery address, and record the missed delivery. The form opens the resulting case directly for the agent who took the call. The customer receives the reviewed response through the simulated notification service.
 
 Use the Exceptions breadcrumb to return to the queue. The case workspace combines customer intake, order details and an illustrative product image with cross-system evidence, an investigation summary, recommended actions, and case activity.
 

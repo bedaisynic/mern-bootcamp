@@ -55,7 +55,7 @@ export function OrderSummary({data, detailed = false}: {data: Workspace; detaile
 function CrossSystemEvidence({data, refreshedAt, refresh, refreshing}: {data: Workspace; refreshedAt: number; refresh: () => void; refreshing: boolean}) {
   const {inventory, warehouse, delivery} = data.context;
   const available = delivery?.slots.filter(slot => slot.capacity > 0) ?? [];
-  return <Card title="Cross-system evidence" subtitle="Live context from the simulated OMS" icon={<ClipboardCheck size={19} />}>
+  return <Card title="Cross-system evidence" subtitle="Order, inventory, warehouse, and carrier records" icon={<ClipboardCheck size={19} />}>
     <div className={s.evidenceBar}>
       <Tag tone={inventory && warehouse && delivery ? 'green' : 'amber'}>{inventory && warehouse && delivery ? '3 systems reporting' : 'Evidence incomplete'}</Tag>
       {refreshedAt > 0 && <span className={s.muted}>Updated {new Date(refreshedAt).toLocaleTimeString('en-US', {hour: 'numeric', minute: '2-digit'})}</span>}
@@ -154,7 +154,7 @@ export function InvestigationPanel({data, busy, role, run, choose}: PanelProps &
       <h3>Supporting evidence</h3>
       {result.evidence.length ? <ul className={s.detailList}>{result.evidence.map(evidence => <li key={evidence.source}><strong>{evidence.source}</strong><p>{evidence.description}</p></li>)}</ul> : <p className={s.muted}>No supporting evidence was available.</p>}
     </Card>
-    <Card title="Policy references" subtitle="Fictional training policies used in this assessment" icon={<FileText size={19} />}>
+    <Card title="Policy references" subtitle="Policies cited in this assessment" icon={<FileText size={19} />}>
       {result.policyReferences.length ? <ul className={s.detailList}>{result.policyReferences.map(policy => <li key={policy.policyId}><Tag tone="blue">{policy.policyId}</Tag> <strong>{policy.title}</strong><p>{data.policyDetails.find(item => item.policyId === policy.policyId)?.text}</p></li>)}</ul> : <p className={s.muted}>No policies cited.</p>}
     </Card>
     <Card title="Recommended actions" subtitle="Review the recommendations before choosing a resolution." icon={<BadgeCheck size={19} />}>

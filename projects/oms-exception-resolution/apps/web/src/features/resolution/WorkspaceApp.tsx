@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { Alert, Button, CircularProgress, MenuItem, TextField } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Activity, ArrowRight, BadgeCheck, ChevronRight, CircleHelp, ClipboardCheck, FileText, History, LayoutDashboard, Mail, Package, PanelTop, Settings, ShieldCheck, Sparkles, Truck, Warehouse } from 'lucide-react';
+import { Activity, ArrowRight, BadgeCheck, ChevronRight, ClipboardCheck, Headphones, FileText, History, LayoutDashboard, Mail, Package, PanelTop, Settings, ShieldCheck, Sparkles, Truck, Warehouse } from 'lucide-react';
 import { Link, matchPath, NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import type { Action, Actor } from '@oms/shared-types';
 import type { Command } from '@oms/shared-schemas';
@@ -9,29 +9,37 @@ import { CASE_ID, type Workspace } from '@oms/oms-mock-adapters';
 import { errorMessage, loadQueue, loadWorkspace, sendCommand, signIn, useRole } from './api';
 import { ActionPanel, ApprovalPanel, CaseDetails, InvestigationPanel, OrderSummary, Overview, ResponsePanel, Tag, TimelinePanel } from './panels';
 import { ExceptionQueue } from './ExceptionQueue';
+import { OperationsPanel, type OperationsPath } from './OperationsPanels';
 import { RegisterCall } from './RegisterCall';
 import { casePath, intakePath, nextStep, queuePath, responseTarget } from './navigation';
 import s from './workspace.module.css';
 
 const modules = [
-  {label: 'Dashboard', icon: LayoutDashboard}, {label: 'Orders', icon: Package}, {label: 'Inventory', icon: ClipboardCheck},
-  {label: 'Warehouse', icon: Warehouse}, {label: 'Delivery', icon: Truck}, {label: 'Exceptions', icon: Activity, active: true},
-  {label: 'Reports', icon: FileText}, {label: 'Settings', icon: Settings},
-];
+  {label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard}, {label: 'Orders', path: '/orders', icon: Package},
+  {label: 'Inventory', path: '/inventory', icon: ClipboardCheck}, {label: 'Warehouse', path: '/warehouse', icon: Warehouse},
+  {label: 'Delivery', path: '/delivery', icon: Truck}, {label: 'Exceptions', path: queuePath, icon: Activity},
+  {label: 'Reports', path: '/reports', icon: FileText}, {label: 'Settings', path: '/settings', icon: Settings},
+] satisfies {label: string; path: OperationsPath | typeof queuePath; icon: typeof Activity}[];
 const tabs = [
   {label: 'Resolution Workspace', view: '', icon: PanelTop}, {label: 'Order Details', view: 'order', icon: Package},
   {label: 'AI Investigation', view: 'investigation', icon: Sparkles}, {label: 'Resolution Actions', view: 'actions', icon: ClipboardCheck},
   {label: 'Approval', view: 'approval', icon: ShieldCheck}, {label: 'Customer Response', view: 'response', icon: Mail},
   {label: 'Timeline', view: 'timeline', icon: History},
 ];
+function ModuleNavigation({className}: {className?: string}) {
+  return <nav aria-label="OMS modules" className={className}>
+    {modules.map(({label, path, icon: Icon}) => <NavLink key={path} to={path} end={path !== queuePath}
+      className={({isActive}) => isActive ? s.moduleLink + ' ' + s.activeModule : s.moduleLink}>
+      <Icon size={17} />{label}
+    </NavLink>)}
+  </nav>;
+}
 function Sidebar() {
   return <aside className={s.sidebar}>
     <Link className={s.brand} to={queuePath}><span className={s.brandIcon}>W</span><div><strong>Shared OMS</strong><small>WILLIAMS-SONOMA</small></div></Link>
     <div className={s.sidebarLabel}>WORKSPACE</div>
-    <nav aria-label="OMS modules">{modules.map(({label, icon: Icon, active}) => active
-      ? <Link key={label} to={queuePath} className={s.activeModule} aria-current="page"><Icon size={17} />{label}</Link>
-      : <button key={label} disabled title="Existing OMS module outside this demo"><Icon size={17} />{label}</button>)}</nav>
-    <div className={s.sidebarFoot}><CircleHelp size={17} /><div><strong>Training environment</strong><small>Fictional case study</small></div></div>
+    <ModuleNavigation />
+    <div className={s.sidebarFoot}><Headphones size={17} /><div><strong>Customer Care</strong><small>Order Operations</small></div></div>
   </aside>;
 }
 function Journey({data}: {data: Workspace}) {
@@ -57,6 +65,8 @@ export function WorkspaceApp() {
   const {pathname, state} = useLocation();
   const registering = pathname === intakePath;
   const viewingQueue = pathname === queuePath;
+  const module = modules.find(item => item.path !== queuePath && item.path === pathname);
+  const operationsPath = module?.path === queuePath ? undefined : module?.path;
   const caseId = registering ? undefined : matchPath(queuePath + '/:id/*', pathname)?.params.id;
   const queryClient = useQueryClient();
   const [selected, setSelected] = useState<Action>();
@@ -67,7 +77,7 @@ export function WorkspaceApp() {
     refetchInterval: query => query.state.data?.investigation?.status === 'queued' ? 700 : false,
   });
   const queue = useQuery({
-    queryKey: ['queue', role], queryFn: () => loadQueue(token!), enabled: !!token && viewingQueue,
+    queryKey: ['queue', role], queryFn: () => loadQueue(token!), enabled: !!token && (viewingQueue || !!operationsPath),
   });
   const mutation = useMutation({
     mutationFn: ({command}: {command: Command; next?: string}) => sendCommand(token!, caseId!, command),
@@ -81,8 +91,8 @@ export function WorkspaceApp() {
   });
   const data = query.data;
   let content: ReactNode;
-  const activeQuery = viewingQueue ? queue : query;
-  if (!viewingQueue && !registering && !caseId) {
+  const activeQuery = viewingQueue || operationsPath ? queue : query;
+  if (!viewingQueue && !registering && !caseId && !operationsPath) {
     const legacy = tabs.find(tab => tab.view && pathname === '/' + tab.view);
     content = <Navigate to={legacy ? casePath(CASE_ID, legacy.view) : queuePath} replace />;
   } else if (session.isError || activeQuery.isError) {
@@ -91,10 +101,12 @@ export function WorkspaceApp() {
     </Alert>;
   } else if (registering && session.data) {
     content = <RegisterCall actor={session.data.actor} token={session.data.token} />;
+  } else if (operationsPath && queue.data) {
+    content = <OperationsPanel path={operationsPath} cases={queue.data} role={role} />;
   } else if (viewingQueue && queue.data) {
     content = <ExceptionQueue cases={queue.data} canRegister={role === 'agent'} />;
   } else if (!data || !caseId) {
-    content = <div role="status" className={s.loading}><CircularProgress size={24} /> Loading exception workspace…</div>;
+    content = <div role="status" className={s.loading}><CircularProgress size={24} /> Loading workspace…</div>;
   } else {
     const props = {data, role, busy: mutation.isPending, run: (command: Command, next?: string) => mutation.mutate({command, next})};
     const step = nextStep(data);
@@ -149,17 +161,17 @@ export function WorkspaceApp() {
     <div className={s.shell}>
       <header className={s.topbar}>
         <nav className={s.breadcrumb} aria-label="Breadcrumb"><span>Operations</span><ChevronRight size={14} />
-          {caseId || registering ? <><Link to={queuePath}>Exceptions</Link><ChevronRight size={14} /><strong>{registering ? 'Register call' : caseId}</strong></> : <strong>Exceptions</strong>}
+          {caseId || registering ? <><Link to={queuePath}>Exceptions</Link><ChevronRight size={14} /><strong>{registering ? 'Register call' : caseId}</strong></> : <strong>{module?.label ?? 'Exceptions'}</strong>}
         </nav>
         <div className={s.account}>
-          <span className={s.demo}>DEMO</span>
-          <TextField label="Demo role" select size="small" value={role} disabled={mutation.isPending}
+          <TextField label="Active role" select size="small" value={role} disabled={mutation.isPending}
             onChange={event => { mutation.reset(); setRole(event.target.value as Actor['role']); }}>
             <MenuItem value="agent">Agent · Sarah Chen</MenuItem><MenuItem value="supervisor">Supervisor · Marcus Lee</MenuItem>
           </TextField>
           <span className={s.avatar}>{role === 'agent' ? 'SC' : 'ML'}</span>
         </div>
       </header>
+      <ModuleNavigation className={s.mobileNavigation} />
       <main className={s.main}>{content}</main>
     </div>
   </div>;

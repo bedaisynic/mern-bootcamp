@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 test('investigates, approves a $75 credit, executes, reviews the reply and closes EX-2048', async ({page}) => {
   const views = page.getByRole('navigation', {name: 'Case views'});
   const selectRole = async (name: string) => {
-    await page.getByRole('combobox', {name: 'Demo role'}).click();
+    await page.getByRole('combobox', {name: 'Active role'}).click();
     await page.getByRole('option', {name}).click();
   };
   await page.goto('/');
@@ -34,7 +34,7 @@ test('investigates, approves a $75 credit, executes, reviews the reply and close
   await expect(page.getByRole('heading', {name: 'Exception queue'})).toBeVisible();
   await expect(page.getByRole('heading', {name: 'Registered cases'})).toBeVisible();
   await page.getByRole('link', {name: 'Open case EX-2048'}).click();
-  await expect(page.getByRole('button', {name: 'Orders', exact: true})).toBeDisabled();
+  await expect(page.getByRole('navigation', {name: 'OMS modules'}).getByRole('link', {name: 'Orders', exact: true})).toBeVisible();
   await page.getByRole('button', {name: 'Start AI investigation'}).click();
   await expect(page.getByText('Warehouse fulfillment delay', {exact: true}).first()).toBeVisible();
   await expect(page.getByText('DELIVERY-001', {exact: true})).toBeVisible();
@@ -133,4 +133,30 @@ test('registers a support call and opens the new case for the agent who took it'
   await page.getByRole('button', {name: 'Verify address'}).click();
   await expect(page.getByRole('link', {name: 'Open existing case · EX-2057'})).toBeVisible();
   await expect(page.getByRole('button', {name: 'Create exception case'})).toHaveCount(0);
+});
+
+
+test('opens each operations panel and keeps the primary workflow in Exceptions', async ({page}) => {
+  await page.goto('/exceptions');
+  const nav = page.getByRole('navigation', {name: 'OMS modules'});
+  for (const [label, title, content] of [
+    ['Dashboard', 'Operations dashboard', 'Case status breakdown'],
+    ['Orders', 'Orders', 'Order records'],
+    ['Inventory', 'Inventory', 'Inventory by order'],
+    ['Warehouse', 'Warehouse', 'Fulfillment records'],
+    ['Delivery', 'Delivery', 'Delivery appointments'],
+    ['Reports', 'Reports', 'Resolution outcomes'],
+    ['Settings', 'Settings', 'Workspace profile'],
+  ]) {
+    const link = nav.getByRole('link', {name: label, exact: true});
+    await link.click();
+    await expect(link).toHaveAttribute('aria-current', 'page');
+    await expect(page.getByRole('heading', {level: 1, name: title, exact: true})).toBeVisible();
+    await expect(page.getByRole('heading', {name: content, exact: true})).toBeVisible();
+    await expect(page.getByRole('main').getByRole('button')).toHaveCount(0);
+    await expect(page.locator('body')).not.toContainText(/\bdemo\b|fiction/i);
+  }
+  await nav.getByRole('link', {name: 'Exceptions', exact: true}).click();
+  await expect(page.getByRole('heading', {name: 'Exception queue'})).toBeVisible();
+  await expect(page.getByRole('link', {name: 'Register call'})).toBeVisible();
 });

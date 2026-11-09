@@ -9,7 +9,7 @@ export const addressVerificationSchema = z.object({
 export type AddressVerification = z.infer<typeof addressVerificationSchema>;
 
 export const intakeSchema = z.object({
-  orderId: z.string().trim().min(1, 'Select a demo order').max(30),
+  orderId: z.string().trim().min(1, 'Select an order').max(30),
   addressVerification: addressVerificationSchema,
   customerName: z.string().trim().min(1, 'Enter the customer name').max(100),
   email: z.string().trim().max(254).email('Enter a valid email address'),

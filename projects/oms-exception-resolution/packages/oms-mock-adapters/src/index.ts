@@ -117,14 +117,14 @@ export function seedCases(): ResolutionCase[] {
       record.workflow = {
         id: workflowId, selection: {action: 'RESCHEDULE_DELIVERY', slotId: slot.id, reason: 'Customer requested a later window'},
         status: 'executed', checks: ['Order and payment confirmed', 'Carrier capacity and fulfillment release checked', 'Within agent authorization'],
-        execution: {reference: 'OMS-DEMO-' + order.caseId.slice(3), summary, slotId: slot.id},
+        execution: {reference: 'OMS-0000' + order.caseId.slice(3), summary, slotId: slot.id},
       };
       record.status = 'Resolved';
       audit(4, 'Resolution action selected', 'Reschedule delivery');
       audit(5, 'Business validation completed');
       audit(6, 'Resolution executed', summary);
       if (order.stage === 'closed') {
-        const reference = 'MSG-' + order.caseId + '-DEMO';
+        const reference = 'MSG-' + order.caseId + '-001';
         record.response = {
           text: 'Hi Isabella, your new delivery window is ' + slot.label + '. Thank you for your patience.',
           reference, sentAt: time(8),

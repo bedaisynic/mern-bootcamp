@@ -1,8 +1,8 @@
 # AI-assisted order exception resolution
 
-A runnable full-stack case study for a fictional Williams-Sonoma shared order management system. The demo opens the exception queue. Customer service agents open Pottery Barn case **EX-2048** after Emma Carter reports a missed delivery. All customers, policies, orders, and OMS operations are simulated.
+A full-stack case study for a shared order management workspace. The application opens the exception queue. Customer service agents open Pottery Barn case **EX-2048** after Emma Carter reports a missed delivery. All customers, policies, orders, and OMS operations are simulated.
 
-## Run the interactive demo
+## Run the application locally
 
 Use Node.js 22 and npm.
 
@@ -11,7 +11,7 @@ npm install
 npm run dev
 ```
 
-Open [the exception workspace](http://127.0.0.1:5173/). The command starts Vite, the BFF, and both feature services. The default configuration runs the LangGraph investigation with deterministic AI output and policy retrieval, stores feature state in local files under `.demo/`, and delivers outbox events between the services over loopback HTTP. It requires zero API keys and no Docker, Kafka, or database installation.
+Open [the exception workspace](http://127.0.0.1:5173/). The command starts Vite, the BFF, and both feature services. The default configuration runs the LangGraph investigation with deterministic AI output and policy retrieval, stores feature state in local JSON files, and delivers outbox events between the services over loopback HTTP. It requires zero API keys and no Docker, Kafka, or database installation.
 
 1. Open EX-2048 from the queue, start the investigation and mark the recommendations reviewed.
 2. Select **Goodwill credit**, enter **75**, add a reason, and validate the action.
@@ -22,11 +22,13 @@ Open [the exception workspace](http://127.0.0.1:5173/). The command starts Vite,
 
 The queue also includes **EX-2050** (ready to investigate), **EX-2051** (awaiting supervisor approval), **EX-2052** (resolved and ready for customer follow-up), and **EX-2053–EX-2056** (new, investigation ready for review, approval granted, and closed).
 
-To demo the path without supervisor approval, select **Reschedule delivery** and choose an available window.
+To try the path without supervisor approval, select **Reschedule delivery** and choose an available window.
+
+The sidebar also includes **Dashboard**, **Orders**, **Inventory**, **Warehouse**, **Delivery**, **Reports**, and **Settings**. These views display operational data for the exception workspace. Case changes happen in **Exceptions**.
 
 ## Test order lookup and address verification
 
-Start the mock demo and open [Register call](http://127.0.0.1:5173/exceptions/new) as **Agent · Sarah Chen**. All names and addresses below are fictional fixtures.
+Start the local application and open [Register call](http://127.0.0.1:5173/exceptions/new) as **Agent · Sarah Chen**. All names and addresses below are sample records.
 
 | Scenario | Order to select | Street number | ZIP code | Expected result |
 | --- | --- | --- | --- | --- |
@@ -39,11 +41,11 @@ Start the mock demo and open [Register call](http://127.0.0.1:5173/exceptions/ne
 3. Enter at least 10 characters in **Call notes**, such as “Customer reported that the delivery window passed.” Click **Create exception case**. The workspace opens **EX-2057**, and the case now appears in **Exceptions**.
 4. Repeat lookup and verification for **PB-10254**, or use **PB-10245** with Emma's details. The final screen offers **Open existing case**.
 
-To repeat the new-case path from a clean local demo, stop the app and run `npm run reset`, then `npm run dev`. Reset clears the local mock case history. To run only the intake browser test, stop the running demo first and use `npm run test:e2e -- --grep 'registers a support call'` after installing Chromium as shown below.
+To repeat the new-case path from a clean local workspace, stop the app and run `npm run reset`, then `npm run dev`. Reset clears the local mock case history. To run only the intake browser test, stop the running application first and use `npm run test:e2e -- --grep 'registers a support call'` after installing Chromium as shown below.
 
 ## Run with PostgreSQL and Kafka
 
-Stop any existing local demo first. Docker Compose runs PostgreSQL with pgvector, Redpanda, and the three backend applications. Each service runs its own Prisma migration at startup. EX-2048 is loaded lazily from its seed on first access.
+Stop any existing local application processes first. Docker Compose runs PostgreSQL with pgvector, Redpanda, and the three backend applications. Each service runs its own Prisma migration at startup. EX-2048 is loaded lazily from its seed on first access.
 
 ```sh
 npm install
@@ -51,9 +53,9 @@ docker compose up -d --build
 npm run dev -w @oms/web
 ```
 
-Frontend at [port 5173](http://127.0.0.1:5173/), Swagger at [port 4100](http://127.0.0.1:4100/api/docs/). Backend logs are available via `docker compose logs -f bff resolution investigation`. To clear the Compose demo, run `docker compose down -v`, which deletes this Compose project's database and broker volumes.
+Frontend at [port 5173](http://127.0.0.1:5173/), Swagger at [port 4100](http://127.0.0.1:4100/api/docs/). Backend logs are available via `docker compose logs -f bff resolution investigation`. To reset the Compose workspace, run `docker compose down -v`, which deletes this Compose project's database and broker volumes.
 
-For live AI, copy `.env.example` to `.env`, set `AI_MODE=live` and `OPENAI_API_KEY`, and recreate the investigation container. Compose injects PostgreSQL and Kafka settings independently from the quick demo defaults. At startup the investigation service embeds the fictional policies and indexes them before accepting events. The key stays in the investigation process. Model selection is configurable with `OPENAI_MODEL`.
+For live AI, copy `.env.example` to `.env`, set `AI_MODE=live` and `OPENAI_API_KEY`, and recreate the investigation container. Compose injects PostgreSQL and Kafka settings independently from the local defaults. At startup the investigation service embeds the sample policies and indexes them before accepting events. The key stays in the investigation process. Model selection is configurable with `OPENAI_MODEL`.
 
 ## Verify
 
@@ -71,7 +73,7 @@ Playwright starts an isolated mock stack. Stop any existing services on ports 41
 | Path | Contents |
 | --- | --- |
 | [apps/web](apps/web) | Exception queue and routed workspace views with MUI, React Query, Zustand, React Hook Form, and Zod |
-| [apps/bff](apps/bff) | Demo authentication, request validation, Swagger, and service routing |
+| [apps/bff](apps/bff) | Local authentication, request validation, Swagger, and service routing |
 | [services/order-resolution-service](services/order-resolution-service) | Workflow, business checks, approvals, execution, audit, and outbox |
 | [services/ai-investigation-service](services/ai-investigation-service) | LangGraph, read-only tools, OpenAI, vector retrieval, and drafting |
 | [packages](packages) | Shared contracts, mock OMS adapters, server utilities, and Kafka transport |

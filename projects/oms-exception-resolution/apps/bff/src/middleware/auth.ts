@@ -6,7 +6,7 @@ import { actors, type Actor } from '@oms/shared-types';
 
 const claims = {issuer: 'oms-demo', audience: 'oms-workspace', algorithm: 'HS256'} as const;
 export function signSession(role: Actor['role']) {
-  if (!env.demoAuth) throw new HttpError(404, 'Demo sign-in is disabled');
+  if (!env.demoAuth) throw new HttpError(404, 'Workspace sign-in is unavailable');
   const actor = actors[role];
   return {actor, token: jwt.sign(actor, env.jwtSecret, {...claims, expiresIn: '2h'})};
 }

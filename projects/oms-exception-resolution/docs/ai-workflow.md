@@ -9,7 +9,7 @@ sequenceDiagram
   participant O as OpenAI
   K->>G: Correlated case, order, and issue
   G->>T: Load order, inventory, warehouse, delivery
-  G->>P: Retrieve relevant fictional policies
+  G->>P: Retrieve relevant sample policies
   opt Live mode
     P->>O: Embed case query
     P-->>G: Nearest pgvector chunks
@@ -23,7 +23,7 @@ sequenceDiagram
   G-->>K: Persist result and stage outcome event
 ```
 
-Fictional policy documents are split into sentences, embedded with `text-embedding-3-small`, and stored as 1,536-dimensional vectors. Retrieval ranks by cosine distance. Policy text provides context for recommendations. Separate deterministic checks govern approvals and execution.
+Sample policy documents are split into sentences, embedded with `text-embedding-3-small`, and stored as 1,536-dimensional vectors. Retrieval ranks by cosine distance. Policy text provides context for recommendations. Separate deterministic checks govern approvals and execution.
 
 The model selects from a small case-study cause and action vocabulary. Evidence is rendered from verified tool data and policy references are intersected with retrieved records. A cause must agree with observed warehouse and carrier states. Missing evidence, unsupported actions, or a model refusal can produce a manual-review recommendation. Transport and service errors produce a failed investigation that the agent can retry.
 
