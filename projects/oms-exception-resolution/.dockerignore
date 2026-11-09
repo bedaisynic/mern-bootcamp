@@ -1,0 +1,9 @@
+.git
+node_modules
+**/node_modules
+**/generated
+**/dist
+.demo
+.env
+test-results
+playwright-report

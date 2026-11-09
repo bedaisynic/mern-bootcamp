@@ -1,0 +1,90 @@
+x-node: &node
+  build:
+    context: .
+    dockerfile: infrastructure/docker/Dockerfile
+  image: oms-exception-resolution:local
+x-service-env: &service-env
+  HOST: 0.0.0.0
+  STORAGE_MODE: postgres
+  EVENT_MODE: kafka
+  KAFKA_BROKERS: broker:9092
+  INTERNAL_SECRET: ${INTERNAL_SECRET:-local-training-internal-secret}
+  RESOLUTION_URL: http://resolution:4101
+  AI_URL: http://investigation:4102
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: oms
+      POSTGRES_USER: oms
+      POSTGRES_PASSWORD: oms_local
+    volumes:
+      - database:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:55432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U oms -d oms"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  broker:
+    image: docker.redpanda.com/redpandadata/redpanda:v24.3.8
+    command:
+      - redpanda
+      - start
+      - --mode
+      - dev-container
+      - --smp
+      - "1"
+      - --kafka-addr
+      - internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr
+      - internal://broker:9092,external://127.0.0.1:19092
+    volumes:
+      - broker:/var/lib/redpanda/data
+    ports:
+      - "127.0.0.1:19092:19092"
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health | grep -q 'Healthy:.*true'"]
+      interval: 3s
+      timeout: 4s
+      retries: 30
+  resolution:
+    <<: *node
+    command: ["sh", "-c", "npx prisma migrate deploy --schema services/order-resolution-service/prisma/schema.prisma && npm run start -w @oms/resolution"]
+    environment:
+      <<: *service-env
+      PORT: 4101
+      DATABASE_URL: postgresql://oms:oms_local@postgres:5432/oms?schema=resolution
+    depends_on:
+      postgres: {condition: service_healthy}
+      broker: {condition: service_healthy}
+  investigation:
+    <<: *node
+    command: ["sh", "-c", "npx prisma migrate deploy --schema services/ai-investigation-service/prisma/schema.prisma && if [ \"$$AI_MODE\" = live ]; then node --import tsx services/ai-investigation-service/src/config/seed.ts || exit 1; fi; exec npm run start -w @oms/ai"]
+    environment:
+      <<: *service-env
+      PORT: 4102
+      DATABASE_URL: postgresql://oms:oms_local@postgres:5432/oms?schema=investigation
+      AI_MODE: ${AI_MODE:-mock}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}
+    depends_on:
+      postgres: {condition: service_healthy}
+      broker: {condition: service_healthy}
+  bff:
+    <<: *node
+    command: ["npm", "run", "start", "-w", "@oms/bff"]
+    environment:
+      <<: *service-env
+      PORT: 4100
+      DEMO_AUTH: ${DEMO_AUTH:-true}
+      JWT_SECRET: ${JWT_SECRET:-local-training-jwt-secret}
+    ports:
+      - "127.0.0.1:4100:4100"
+    depends_on: [resolution, investigation]
+
+volumes:
+  database:
+  broker:

@@ -1,0 +1,22 @@
+{
+  "name": "@oms/ai",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node --import tsx src/server.ts"
+  },
+  "dependencies": {
+    "@langchain/core": "^1.1.0",
+    "@langchain/langgraph": "^1.1.0",
+    "@oms/kafka": "*",
+    "@oms/oms-mock-adapters": "*",
+    "@oms/server-kit": "*",
+    "@oms/shared-schemas": "*",
+    "@oms/shared-types": "*",
+    "@prisma/client": "6.19.0",
+    "express": "^5.1.0",
+    "openai": "^6.9.0",
+    "zod": "^4.1.12"
+  }
+}

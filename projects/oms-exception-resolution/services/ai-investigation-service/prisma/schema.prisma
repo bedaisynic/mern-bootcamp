@@ -1,0 +1,38 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated"
+}
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model OutboxEvent {
+  id          String    @id
+  payload     Json
+  createdAt   DateTime  @default(now())
+  publishedAt DateTime?
+  @@index([publishedAt, createdAt])
+}
+model ProcessedEvent {
+  id          String   @id
+  processedAt DateTime @default(now())
+}
+model Investigation {
+  id      String @id
+  caseId  String
+  outcome Json
+}
+model PolicyDocument {
+  id     String @id
+  title  String
+  text   String
+  chunks PolicyChunk[]
+}
+model PolicyChunk {
+  id       String @id
+  policyId String
+  text     String
+  embedding Unsupported("vector(1536)")
+  policy   PolicyDocument @relation(fields: [policyId], references: [id], onDelete: Cascade)
+}

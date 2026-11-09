@@ -1,0 +1,42 @@
+{
+  "name": "oms-exception-resolution",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "apps/*",
+    "services/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently --kill-others-on-fail -n resolution,ai,bff,web \"npm run start -w @oms/resolution\" \"npm run start -w @oms/ai\" \"npm run start -w @oms/bff\" \"npm run dev -w @oms/web\"",
+    "db:generate": "prisma generate --schema services/order-resolution-service/prisma/schema.prisma && prisma generate --schema services/ai-investigation-service/prisma/schema.prisma",
+    "build": "npm run db:generate && tsc --noEmit && npm run build -w @oms/web",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "reset": "node scripts/reset.mjs",
+    "postinstall": "npm run db:generate"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/express": "^5.0.3",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@types/supertest": "^6.0.3",
+    "@types/swagger-ui-express": "^4.1.8",
+    "concurrently": "^9.2.0",
+    "dotenv": "^17.4.0",
+    "jsdom": "^26.1.0",
+    "prisma": "6.19.0",
+    "supertest": "^7.1.4",
+    "tsx": "^4.20.0",
+    "typescript": "~5.9.3",
+    "vitest": "^3.2.4"
+  }
+}

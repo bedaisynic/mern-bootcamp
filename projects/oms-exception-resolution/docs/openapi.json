@@ -1,0 +1,59 @@
+{
+  "openapi": "3.1.0",
+  "info": {"title": "OMS Exception Resolution BFF", "version": "1.0.0"},
+  "servers": [{"url": "/api"}],
+  "components": {
+    "securitySchemes": {"bearer": {"type": "http", "scheme": "bearer", "bearerFormat": "JWT"}},
+    "parameters": {"CaseId": {"name":"id","in":"path","required":true,"schema":{"type":"string","example":"EX-2048"}}},
+    "schemas": {
+      "Command": {
+        "type": "object",
+        "required": ["type"],
+        "properties": {
+          "type": {"enum":["investigate","review","select","approve","execute","draft","send","close"]},
+          "workflowId": {"type":"string","format":"uuid"},
+          "input": {"type":"object"}
+        },
+        "examples": [{"type":"investigate"},{"type":"select","input":{"action":"GOODWILL_CREDIT","amount":75,"reason":"Missed delivery window"}}]
+      }
+    }
+  },
+  "paths": {
+    "/session": {
+      "post": {
+        "summary": "Sign in as a seeded demo role",
+        "requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["role"],"properties":{"role":{"enum":["agent","supervisor"]}}}}}},
+        "responses":{"200":{"description":"Signed JWT and actor"},"400":{"description":"Unknown demo role"},"404":{"description":"Demo authentication disabled"}}
+      }
+    },
+    "/cases": {
+      "get": {
+        "summary": "List existing and registered exceptions",
+        "security": [{"bearer": []}],
+        "responses": {"200": {"description": "Exception queue"}, "401": {"description": "Invalid session"}}
+      },
+      "post": {
+        "summary": "Register a missed-delivery call for the agent taking it",
+        "security": [{"bearer": []}],
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {
+          "type": "object", "required": ["orderId", "customerName", "email", "notes"],
+          "properties": {"orderId": {"type": "string", "example": "PB-10246"}, "customerName": {"type": "string", "maxLength": 100}, "email": {"type": "string", "format": "email"}, "notes": {"type": "string", "minLength": 10, "maxLength": 500}}
+        }}}},
+        "responses": {"201": {"description": "Registered case ID"}, "200": {"description": "Existing case ID"}, "400": {"description": "Invalid intake"}, "403": {"description": "Agent role required"}, "404": {"description": "Unknown demo order"}}
+      }
+    },
+    "/cases/{id}": {
+      "parameters":[{"$ref":"#/components/parameters/CaseId"}],
+      "get":{"summary":"Get the case, workflow, audit and aggregated OMS context","security":[{"bearer":[]}],"responses":{"200":{"description":"Workspace"},"401":{"description":"Invalid session"},"404":{"description":"Unknown case"}}}
+    },
+    "/cases/{id}/commands": {
+      "parameters":[{"$ref":"#/components/parameters/CaseId"}],
+      "post":{
+        "summary":"Apply an authorized workflow command",
+        "security":[{"bearer":[]}],
+        "requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/Command"}}}},
+        "responses":{"200":{"description":"Updated workspace"},"400":{"description":"Invalid command"},"401":{"description":"Invalid session"},"403":{"description":"Role cannot apply the command"},"409":{"description":"Business validation or transition failed"}}
+      }
+    }
+  }
+}
