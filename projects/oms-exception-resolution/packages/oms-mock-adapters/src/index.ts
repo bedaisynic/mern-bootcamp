@@ -29,6 +29,10 @@ export const intakeOrders = [
   {orderId: ORDER_ID, caseId: CASE_ID, customer: 'Emma Carter', email: 'emma.carter@example.com', phone: '(415) 555-0199'},
   {orderId: 'PB-10246', caseId: 'EX-2049', customer: 'Nora Wilson', email: 'nora.wilson@example.com', phone: '(415) 555-0126'},
   ...additionalOrders,
+  {orderId: 'PB-10254', caseId: 'EX-2057', customer: 'Liam Mitchell', email: 'liam.mitchell@example.com', phone: '(415) 555-0124'},
+  {orderId: 'PB-10255', caseId: 'EX-2058', customer: 'Amelia Torres', email: 'amelia.torres@example.com', phone: '(415) 555-0149'},
+  {orderId: 'PB-10256', caseId: 'EX-2059', customer: 'Noah Bennett', email: 'noah.bennett@example.com', phone: '(415) 555-0136'},
+  {orderId: 'PB-10257', caseId: 'EX-2060', customer: 'Chloe Kim', email: 'chloe.kim@example.com', phone: '(415) 555-0161'},
 ];
 const isDemoOrder = (id: string) => intakeOrders.some(order => order.orderId === id);
 export const demoIntake = {

@@ -1,5 +1,5 @@
 import { Alert, Autocomplete, Button, createFilterOptions, TextField } from '@mui/material';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowRight, PhoneCall } from 'lucide-react';
 import { Controller, useForm } from 'react-hook-form';
@@ -7,7 +7,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { intakeOrders } from '@oms/oms-mock-adapters';
 import { intakeSchema, type IntakeInput } from '@oms/shared-schemas';
 import type { Actor } from '@oms/shared-types';
-import { errorMessage, registerCall } from './api';
+import { errorMessage, loadQueue, registerCall } from './api';
 import { casePath, queuePath } from './navigation';
 import { Card, Tag } from './panels';
 import s from './workspace.module.css';
@@ -19,6 +19,11 @@ const filterOrders = createFilterOptions<typeof intakeOrders[number]>({
 export function RegisterCall({actor, token}: {actor: Actor; token: string}) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const queue = useQuery({queryKey: ['queue', actor.role], queryFn: () => loadQueue(token), enabled: actor.role === 'agent'});
+  const ordersWithCases = new Set(queue.data?.map(record => record.orderId));
+  const options = queue.data
+    ? [...intakeOrders].sort((a, b) => Number(ordersWithCases.has(a.orderId)) - Number(ordersWithCases.has(b.orderId)))
+    : [];
   const form = useForm<IntakeInput>({
     resolver: zodResolver(intakeSchema),
     defaultValues: {orderId: '', customerName: '', email: '', notes: ''},
@@ -40,14 +45,19 @@ export function RegisterCall({actor, token}: {actor: Actor; token: string}) {
     {actor.role !== 'agent' ? <Alert severity="info">Switch to the Agent role to register a call.</Alert> :
       <Card title="Delivery exception" subtitle="Choose from the demo orders and record what the customer reported." icon={<PhoneCall size={19} />}>
         <div className={s.heroTags}><Tag tone="blue">Handled by {actor.name}</Tag><Tag>Support phone call</Tag></div>
+        {queue.isError && <Alert severity="error" sx={{mt: 2}}
+          action={<Button onClick={() => void queue.refetch()}>Retry</Button>}>{errorMessage(queue.error)}</Alert>}
         {mutation.isError && <Alert severity="error" sx={{mt: 2}}>{errorMessage(mutation.error)}</Alert>}
         <form className={s.form} onSubmit={form.handleSubmit(input => mutation.mutate(input))} noValidate>
           <Controller name="orderId" control={form.control} render={({field, fieldState}) =>
             <Autocomplete
-              options={intakeOrders}
+              options={options}
               value={intakeOrders.find(option => option.orderId === field.value) ?? null}
               getOptionLabel={option => option.orderId}
               filterOptions={filterOrders}
+              groupBy={option => ordersWithCases.has(option.orderId) ? 'Orders with existing cases' : 'Orders without cases'}
+              loading={queue.isPending}
+              noOptionsText="No matching orders"
               renderOption={({key, ...props}, option) => <li key={key} {...props}>{option.orderId} · {option.customer}</li>}
               autoHighlight
               disabled={mutation.isPending}
@@ -60,7 +70,7 @@ export function RegisterCall({actor, token}: {actor: Actor; token: string}) {
               }}
               renderInput={params => <TextField {...params} inputRef={field.ref} label="Customer order" required
                 placeholder="Search by order number or customer name" error={!!fieldState.error}
-                helperText={fieldState.error?.message ?? 'Try PB-10246 to register a new case.'} />}
+                helperText={fieldState.error?.message} />}
             />
           } />
           <Controller name="customerName" control={form.control} render={({field, fieldState}) =>
@@ -77,7 +87,7 @@ export function RegisterCall({actor, token}: {actor: Actor; token: string}) {
               slotProps={{htmlInput: {maxLength: 500}}} />
           } />
           <div className={s.buttonRow}>
-            <Button type="submit" variant="contained" disabled={mutation.isPending} endIcon={<ArrowRight size={16} />}>Register and open case</Button>
+            <Button type="submit" variant="contained" disabled={mutation.isPending || !queue.data} endIcon={<ArrowRight size={16} />}>Register and open case</Button>
             <Button component={Link} to={queuePath} disabled={mutation.isPending}>Cancel</Button>
           </div>
         </form>
