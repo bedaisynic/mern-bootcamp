@@ -12,12 +12,10 @@
   ],
   "scripts": {
     "dev": "concurrently --kill-others-on-fail -n resolution,ai,bff,web \"npm run start -w @oms/resolution\" \"npm run start -w @oms/ai\" \"npm run start -w @oms/bff\" \"npm run dev -w @oms/web\"",
-    "db:generate": "prisma generate --schema services/order-resolution-service/prisma/schema.prisma && prisma generate --schema services/ai-investigation-service/prisma/schema.prisma",
-    "build": "npm run db:generate && tsc --noEmit && npm run build -w @oms/web",
+    "build": "tsc --noEmit && npm run build -w @oms/web",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "reset": "node scripts/reset.mjs",
-    "postinstall": "npm run db:generate"
+    "reset": "node scripts/reset.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.56.1",
@@ -33,7 +31,6 @@
     "concurrently": "^9.2.0",
     "dotenv": "^17.4.0",
     "jsdom": "^26.1.0",
-    "prisma": "6.19.0",
     "supertest": "^7.1.4",
     "tsx": "^4.20.0",
     "typescript": "~5.9.3",

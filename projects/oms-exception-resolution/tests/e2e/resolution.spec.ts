@@ -171,3 +171,21 @@ test('opens independent operations panels and keeps case actions in Exceptions',
   await expect(page.getByRole('heading', {name: 'Exception queue'})).toBeVisible();
   await expect(page.getByRole('link', {name: 'Register call'})).toBeVisible();
 });
+
+test('signs out of the local workspace and returns to the same page after signing in', async ({page}) => {
+  await page.goto('/dashboard');
+  const signOut = page.getByRole('button', {name: 'Sign out'});
+  await signOut.click();
+
+  const signIn = page.getByRole('button', {name: 'Sign in', exact: true});
+  await expect(signIn).toBeVisible();
+  await expect(page.getByRole('combobox', {name: 'Active role'})).toHaveCount(0);
+
+  await page.reload();
+  await expect(signIn).toBeVisible();
+  await signIn.click();
+
+  await expect(signOut).toBeVisible();
+  await expect(page.getByRole('combobox', {name: 'Active role'})).toContainText('Agent · Sarah Chen');
+  await expect(page).toHaveURL(/\/dashboard$/);
+});

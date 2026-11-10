@@ -176,7 +176,7 @@ export function WorkspaceApp({session, onRoleChange, onSignOut}: {
             <MenuItem value="agent">Agent · Sarah Chen</MenuItem><MenuItem value="supervisor">Supervisor · Marcus Lee</MenuItem>
           </TextField> : <div className={s.accountIdentity}><strong>{actor.name}</strong><small>{role === 'agent' ? 'Agent' : 'Supervisor'}</small></div>}
           <span className={s.avatar}>{actor.name.trim().split(/\s+/).slice(0, 2).map(part => part[0]?.toUpperCase()).join('')}</span>
-          {onSignOut && <Button size="small" disabled={mutation.isPending} onClick={onSignOut}>Sign out</Button>}
+          {onSignOut && <Button variant="outlined" size="small" sx={{whiteSpace: 'nowrap'}} disabled={mutation.isPending} onClick={onSignOut}>Sign out</Button>}
         </div>
       </header>
       <ModuleNavigation className={s.mobileNavigation} />

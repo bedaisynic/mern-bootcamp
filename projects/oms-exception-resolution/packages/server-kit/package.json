@@ -3,11 +3,17 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "exports": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./postgres": "./src/postgres.ts"
+  },
   "dependencies": {
     "dotenv": "^17.4.0",
     "express": "^5.1.0",
     "pino": "^9.11.0",
-    "zod": "^4.1.12"
+    "zod": "^4.1.12",
+    "pg": "^8.16.0",
+    "typeorm": "^0.3.31",
+    "@oms/shared-types": "*"
   }
 }

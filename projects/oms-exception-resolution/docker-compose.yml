@@ -52,21 +52,21 @@ services:
       retries: 30
   resolution:
     <<: *node
-    command: ["sh", "-c", "npx prisma migrate deploy --schema services/order-resolution-service/prisma/schema.prisma && npm run start -w @oms/resolution"]
+    command: ["sh", "-c", "npm run db:migrate -w @oms/resolution && npm run start -w @oms/resolution"]
     environment:
       <<: *service-env
       PORT: 4101
-      DATABASE_URL: postgresql://oms:oms_local@postgres:5432/oms?schema=resolution
+      DATABASE_URL: postgresql://oms:oms_local@postgres:5432/oms
     depends_on:
       postgres: {condition: service_healthy}
       broker: {condition: service_healthy}
   investigation:
     <<: *node
-    command: ["sh", "-c", "npx prisma migrate deploy --schema services/ai-investigation-service/prisma/schema.prisma && if [ \"$$AI_MODE\" = live ]; then node --import tsx services/ai-investigation-service/src/config/seed.ts || exit 1; fi; exec npm run start -w @oms/ai"]
+    command: ["sh", "-c", "npm run db:migrate -w @oms/ai && if [ \"$$AI_MODE\" = live ]; then node --import tsx services/ai-investigation-service/src/config/seed.ts || exit 1; fi; exec npm run start -w @oms/ai"]
     environment:
       <<: *service-env
       PORT: 4102
-      DATABASE_URL: postgresql://oms:oms_local@postgres:5432/oms?schema=investigation
+      DATABASE_URL: postgresql://oms:oms_local@postgres:5432/oms
       AI_MODE: ${AI_MODE:-mock}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}

@@ -35,7 +35,7 @@ sequenceDiagram
   UI->>BFF: Poll workspace until final state
 ```
 
-Each backend uses `app.ts`, `server.ts`, Express routers, and thin controllers. Shared server utilities supply JSON errors, internal request authentication, logging, and the local file repository. Application services own transition rules. Prisma repositories own transactions and query construction. The BFF delegates commands and returns the aggregated workspace.
+Each backend uses `app.ts`, `server.ts`, Express routers, and thin controllers. Shared server utilities supply JSON errors, internal request authentication, logging, and the local file repository. Application services own transition rules. TypeORM repositories own transactions and query construction. PostgreSQL advisory locks serialize case transitions and investigation outcomes. Policy retrieval uses parameterized SQL for pgvector cosine similarity. The BFF delegates commands and returns the aggregated workspace.
 
 ## Identity
 

@@ -13,6 +13,8 @@ npm run dev
 
 Open [the exception workspace](http://127.0.0.1:5173/). The command starts Vite, the BFF, and both feature services. The default configuration runs the LangGraph investigation with deterministic AI output and policy retrieval, stores feature state in local JSON files, and delivers outbox events between the services over loopback HTTP. It requires zero API keys and no Docker, Kafka, or database installation.
 
+In local mode, select **Sign out** in the top-right corner to open the **Shared OMS** sign-in page. Select **Sign in** to return as Sarah Chen.
+
 1. Open EX-2048 from the queue, start the investigation and mark the recommendations reviewed.
 2. Select **Goodwill credit**, enter **75**, add a reason, and validate the action.
 3. Open **Approval**, switch to **Supervisor · Marcus Lee**, add a note, and approve.
@@ -61,7 +63,7 @@ Open [the workspace](http://localhost:5173/) and select **Sign in with Okta**. I
 
 ## Run with PostgreSQL and Kafka
 
-Stop any existing local application processes first. Docker Compose runs PostgreSQL with pgvector, Redpanda, and the three backend applications. Each service runs its own Prisma migration at startup. EX-2048 is loaded lazily from its seed on first access.
+Stop any existing local application processes first. Docker Compose runs PostgreSQL with pgvector, Redpanda, and the three backend applications. Each service runs its own TypeORM migrations before startup. The baseline adopts existing tables and retains their case records, investigation results, policy vectors, and event history. EX-2048 is loaded lazily from its seed on first access.
 
 ```sh
 npm install
@@ -69,7 +71,7 @@ docker compose up -d --build
 npm run dev -w @oms/web
 ```
 
-Frontend at [port 5173](http://127.0.0.1:5173/), Swagger at [port 4100](http://127.0.0.1:4100/api/docs/). Backend logs are available via `docker compose logs -f bff resolution investigation`. To reset the Compose workspace, run `docker compose down -v`, which deletes this Compose project's database and broker volumes.
+Frontend at [port 5173](http://127.0.0.1:5173/), Swagger at [port 4100](http://127.0.0.1:4100/api/docs/). To run migrations against a host-side PostgreSQL instance with pgvector, set `STORAGE_MODE=postgres` and `DATABASE_URL`, then run `npm run db:migrate -w @oms/resolution` and `npm run db:migrate -w @oms/ai`. Backend logs are available via `docker compose logs -f bff resolution investigation`. To reset the Compose workspace, run `docker compose down -v`, which deletes this Compose project's database and broker volumes.
 
 For live AI, copy `.env.example` to `.env`, set `AI_MODE=live` and `OPENAI_API_KEY`, and recreate the investigation container. Compose injects PostgreSQL and Kafka settings independently from the local defaults. At startup the investigation service embeds the sample policies and indexes them before accepting events. The key stays in the investigation process. Model selection is configurable with `OPENAI_MODEL`.
 

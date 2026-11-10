@@ -1,3 +1,11 @@
+import { db } from './database.js';
 import { seedPolicies } from '../services/rag.service.js';
-await seedPolicies();
-console.log('Fictional policy chunks indexed.');
+
+if (!db) throw new Error('Policy indexing requires PostgreSQL');
+await db.initialize();
+try {
+  await seedPolicies();
+  console.log('Policy chunks indexed.');
+} finally {
+  await db.destroy();
+}

@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node --import tsx src/server.ts"
+    "start": "node --import tsx src/server.ts",
+    "db:migrate": "node --import tsx src/config/migrate.ts"
   },
   "dependencies": {
     "@langchain/core": "^1.1.0",
@@ -14,9 +15,9 @@
     "@oms/server-kit": "*",
     "@oms/shared-schemas": "*",
     "@oms/shared-types": "*",
-    "@prisma/client": "6.19.0",
     "express": "^5.1.0",
     "openai": "^6.9.0",
-    "zod": "^4.1.12"
+    "zod": "^4.1.12",
+    "typeorm": "^0.3.31"
   }
 }
